@@ -14,6 +14,8 @@
 #' @param mask        Image cube with additional information
 #'                    to be used in expressions (class = "class_cube").
 #' @param rules       Expressions to be evaluated (named list).
+#' @param exclude_mask_na Should cube pixels set to NA when NA values are
+#'                    found in mask pixels? (logical, default to TRUE)
 #' @param memsize     Memory available for classification in GB
 #'                    (integer, min = 1, max = 16384).
 #' @param multicores  Number of cores to be used for classification
@@ -33,7 +35,7 @@
 #' These rules are then applied to the classified map to produce
 #' a new map with updated classes.
 #'
-#' \code{sits_reclassify()} allow any valid R expression to compute
+#' \code{sits_reclassify()} allow any valid R expression to compute/
 #' reclassification. User should refer to \code{cube} and \code{mask}
 #' to construct logical expressions.
 #' Users can use can use any R expression that evaluates to logical.
@@ -128,6 +130,7 @@ sits_reclassify <- function(cube, ...) {
 sits_reclassify.class_cube <- function(cube, ...,
                                        mask,
                                        rules,
+                                       exclude_mask_na = TRUE,
                                        memsize = 4L,
                                        multicores = 2L,
                                        output_dir,
@@ -180,7 +183,8 @@ sits_reclassify.class_cube <- function(cube, ...,
     reclassify_fn <- .reclassify_fn_expr(
         rules = rules,
         labels_cube = .cube_labels(cube),
-        labels_mask = .cube_labels(mask)
+        labels_mask = .cube_labels(mask),
+        exclude_mask_na = exclude_mask_na
     )
     # Filter mask - bands
     mask <- .cube_filter_bands(cube = mask, bands = "class")
