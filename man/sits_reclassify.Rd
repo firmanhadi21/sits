@@ -13,6 +13,7 @@ sits_reclassify(cube, ...)
   ...,
   mask,
   rules,
+  exclude_mask_na = TRUE,
   memsize = 4L,
   multicores = 2L,
   output_dir,
@@ -31,6 +32,9 @@ sits_reclassify(cube, ...)
 to be used in expressions (class = "class_cube").}
 
 \item{rules}{Expressions to be evaluated (named list).}
+
+\item{exclude_mask_na}{Should cube pixels set to NA when NA values are
+found in mask pixels? (logical, default to TRUE)}
 
 \item{memsize}{Memory available for classification in GB
 (integer, min = 1, max = 16384).}
@@ -62,7 +66,7 @@ Users define rules according to the desired outcome.
 These rules are then applied to the classified map to produce
 a new map with updated classes.
 
-\code{sits_reclassify()} allow any valid R expression to compute
+\code{sits_reclassify()} allow any valid R expression to compute/
 reclassification. User should refer to \code{cube} and \code{mask}
 to construct logical expressions.
 Users can use can use any R expression that evaluates to logical.
