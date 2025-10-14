@@ -157,7 +157,8 @@ sits_reclassify.class_cube <- function(cube, ...,
     job_block_memsize <- .jobs_block_memsize(
         block_size = .block_size(block = block, overlap = 0L),
         npaths = 2L,
-        nbytes = 8L, proc_bloat = .conf("processing_bloat_cpu")
+        nbytes = 4L,
+        proc_bloat = 1
     )
     # Update multicores parameter
     multicores <- .jobs_max_multicores(
