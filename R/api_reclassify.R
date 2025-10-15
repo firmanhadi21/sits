@@ -153,22 +153,27 @@
     names(labels_code) <- unname(labels)
 
     label_as_int <- function(label, lut) {
-        valid_x <- label %in% names(lut)
-        .check_that(
-            all(valid_x),
-            sprintf(
-                .conf("messages", ".reclassify_label_as_int"),
-                label[!valid_x][[1]]
+        valid_label <- label %in% names(lut)
+        if (!all(valid_label)) {
+            warning(
+                sprintf(
+                    .conf("messages", ".reclassify_label_as_int"),
+                    paste0(label[!valid_label], collapse = ", ")
+                ),
+                call. = FALSE
             )
-        )
+            label <- label[valid_label]
+            if (!.has(label)) {
+                stop(.conf("messages", ".reclassify_label_invalid"))
+            }
+        }
         unname(lut[label])
     }
 
     # Internal function to convert label expressions into integer expressions
     rule_as_int <- function(rule) {
-        rules <- list(cube = labels_cube, mask = labels_mask)
-
-        luts <- lapply(rules, function(x) {
+        luts <- list(cube = labels_cube, mask = labels_mask)
+        luts <- lapply(luts, function(x) {
             lut <- as.integer(names(x))
             names(lut) <- unname(x)
             lut
