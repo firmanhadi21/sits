@@ -492,7 +492,7 @@
     }
     if (type == "integer") {
         # convert to desired type
-        values <- as.integer(values)
+        storage.mode(values) <- type
     }
     return(values)
 }
