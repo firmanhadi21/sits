@@ -156,7 +156,7 @@ sits_reclassify.class_cube <- function(cube, ...,
     # Check minimum memory needed to process one block
     job_block_memsize <- .jobs_block_memsize(
         block_size = .block_size(block = block, overlap = 0L),
-        npaths = 2L,
+        npaths = 3L,
         nbytes = 4L,
         proc_bloat = .conf("processing_bloat")
     )
