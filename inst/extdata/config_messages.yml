@@ -257,6 +257,7 @@
 .raster_params_file: "image files do not exist or are not accessible"
 .raster_sub_image: "one tile processed at a time"
 .raster_sub_image_from_bbox: "unable to extract subimage from tile"
+.raster_template: "template file does not exist"
 .raster_write_block: "unable to write block to outout file"
 .raster_write_rast_terra: "unable to write raster object"
 .raster_write_block_mismatch: "number of output files does not match number of layers"
