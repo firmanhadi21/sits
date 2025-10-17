@@ -454,10 +454,11 @@
 #' @param file    path to raster file(s) to be read
 #' @param block   a valid block with (\code{col}, \code{row},
 #'                \code{ncols}, \code{nrows}).
+#' @param type    raster data type. One of "integer" or "numeric".
 #' @param ...     additional parameters to be passed to raster package
 #'
 #' @return Numeric matrix read from file based on parameter block
-.raster_read_rast <- function(files, ..., block = NULL) {
+.raster_read_rast <- function(files, ..., block = NULL, type = "numeric") {
     # check block
     if (.has(block)) {
         .check_raster_block(block = block)
@@ -488,6 +489,10 @@
         )
         # close file descriptor
         terra::readStop(rast)
+    }
+    if (type == "integer") {
+        # convert to desired type
+        values <- as.integer(values)
     }
     return(values)
 }
@@ -1107,94 +1112,49 @@
         nlayers <- .raster_nlayers(.raster_open_rast(merge_files[[1L]]))
         # Run-time options
         conf_opts <- unlist(.conf("gdal_presets", "options"))
-
-        if (.has(base_file)) {
-            # Create raster template
-            .raster_template(
-                base_file = base_file, out_file = out_file, nlayers = nlayers,
-                data_type = data_type, missing_value = missing_value
-            )
-            # Merge into template
-            .try(
-                {
-                    # Create VRT
-                    vrt_file <- .file_path(
-                        .file_sans_ext(out_file),
-                        ext = "vrt",
-                        output_dir = file.path(.file_dir(out_file), ".sits")
-                    )
-                    sf::gdal_utils(
-                        util = "buildvrt",
-                        source = merge_files,
-                        destination = vrt_file,
+        # Check base_file
+        file.exists(base_file)
+        # Merge into template
+        .try(
+            {
+                # Create VRT
+                vrt_file <- .file_path(
+                    .file_sans_ext(out_file),
+                    ext = "vrt",
+                    output_dir = file.path(.file_dir(out_file), ".sits")
+                )
+                sf::gdal_utils(
+                    util = "buildvrt",
+                    source = merge_files,
+                    destination = vrt_file,
+                    quiet = TRUE
+                )
+                # merge using gdal warp
+                suppressWarnings(
+                    .gdal_warp(
+                        file = out_file,
+                        base_files = vrt_file,
+                        params = list(
+                            "-multi" = TRUE,
+                            "-wo" = paste0("NUM_THREADS=", multicores),
+                            "-of" = .conf("gdal_presets", "gtiff", "of"),
+                            "-ot" = .raster_gdal_datatype(data_type),
+                            "-co" = .conf("gdal_presets", "gtiff", "co"),
+                            "-overwrite" = TRUE
+                        ),
+                        conf_opts = conf_opts,
                         quiet = TRUE
                     )
-                    # merge using gdal warp
-                    suppressWarnings(
-                        .gdal_warp(
-                            file = out_file,
-                            base_files = vrt_file,
-                            params = list(
-                                "-multi" = TRUE,
-                                "-wo" = paste0("NUM_THREADS=", multicores),
-                                "-overwrite" = FALSE
-                            ),
-                            conf_opts = conf_opts,
-                            quiet = TRUE
-                        )
-                    )
-                },
-                .rollback = {
-                    unlink(c(vrt_file, out_file))
-                },
-                .finally = {
-                    # Delete temporary files
-                    unlink(c(vrt_file))
-                }
-            )
-        } else {
-            # Merge into template
-            .try(
-                {
-                    # Create VRT
-                    vrt_file <- .file_path(
-                        .file_sans_ext(out_file),
-                        ext = "vrt",
-                        output_dir = file.path(.file_dir(out_file), ".sits")
-                    )
-                    sf::gdal_utils(
-                        util = "buildvrt",
-                        source = merge_files,
-                        destination = vrt_file,
-                        quiet = TRUE
-                    )
-                    # merge using gdal warp
-                    suppressWarnings(
-                        .gdal_warp(
-                            file = out_file,
-                            base_files = vrt_file,
-                            params = list(
-                                "-multi" = TRUE,
-                                "-wo" = paste0("NUM_THREADS=", multicores),
-                                "-of" = .conf("gdal_presets", "gtiff", "of"),
-                                "-ot" = .raster_gdal_datatype(data_type),
-                                "-co" = .conf("gdal_presets", "gtiff", "co"),
-                                "-overwrite" = TRUE
-                            ),
-                            conf_opts = conf_opts,
-                            quiet = TRUE
-                        )
-                    )
-                },
-                .rollback = {
-                    unlink(c(vrt_file, out_file))
-                },
-                .finally = {
-                    # Delete temporary files
-                    unlink(c(vrt_file))
-                }
-            )
-        }
+                )
+            },
+            .rollback = {
+                unlink(c(vrt_file, out_file))
+            },
+            .finally = {
+                # Delete temporary files
+                unlink(c(vrt_file))
+            }
+        )
     }
     return(invisible(out_files))
 }

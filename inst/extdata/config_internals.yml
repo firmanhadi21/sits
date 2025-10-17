@@ -240,7 +240,7 @@ gdal_presets         :
         method       : "NEAREST"
         of           : "COG"
         co           : ["COMPRESS=ZSTD", "PREDICTOR=2", "ZSTD_LEVEL=1",
-                        "LEVEL=9", "BLOCKSIZE=512", "BIGTIFF=YES"]
+                        "OVERVIEW_COUNT=9", "BLOCKSIZE=512", "BIGTIFF=YES"]
     gtiff            :
         of           : "GTiff"
         co           : ["COMPRESS=ZSTD", "PREDICTOR=2", "ZSTD_LEVEL=1",
