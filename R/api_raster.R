@@ -1113,7 +1113,9 @@
         # Run-time options
         conf_opts <- unlist(.conf("gdal_presets", "options"))
         # Check base_file
-        file.exists(base_file)
+        if (.has(base_file)) {
+            file.exists(base_file)
+        }
         # Merge into template
         .try(
             {
@@ -1121,7 +1123,7 @@
                 vrt_file <- .file_path(
                     .file_sans_ext(out_file),
                     ext = "vrt",
-                    output_dir = file.path(.file_dir(out_file), ".sits")
+                    output_dir = .file_dir(out_file)
                 )
                 sf::gdal_utils(
                     util = "buildvrt",
