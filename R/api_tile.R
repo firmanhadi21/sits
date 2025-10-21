@@ -981,6 +981,27 @@ NULL
     values
 }
 #' @export
+.tile_read_block.class_cube <- function(tile, band, block) {
+    tile <- .tile(tile)
+    fi <- .fi(tile)
+    # Stops if band is not found
+    values <- .fi_read_block(
+        fi = fi,
+        band = .band_derived(band),
+        block = block,
+        type = "integer"
+    )
+    # Correct missing, minimum, and maximum values and
+    # apply scale and offset.
+    band_conf <- .tile_band_conf(tile = tile, band = band)
+    miss_value <- .miss_value(band_conf)
+    if (.has(miss_value)) {
+        values[values == miss_value] <- NA
+    }
+    # Return values
+    values
+}
+#' @export
 .tile_read_block.default <- function(tile, band, block) {
     tile |>
         tibble::as_tibble() |>

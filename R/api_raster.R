@@ -454,10 +454,11 @@
 #' @param file    path to raster file(s) to be read
 #' @param block   a valid block with (\code{col}, \code{row},
 #'                \code{ncols}, \code{nrows}).
+#' @param type    raster data type. One of "integer" or "numeric".
 #' @param ...     additional parameters to be passed to raster package
 #'
 #' @return Numeric matrix read from file based on parameter block
-.raster_read_rast <- function(files, ..., block = NULL) {
+.raster_read_rast <- function(files, ..., block = NULL, type = "numeric") {
     # check block
     if (.has(block)) {
         .check_raster_block(block = block)
@@ -488,6 +489,10 @@
         )
         # close file descriptor
         terra::readStop(rast)
+    }
+    if (type == "integer") {
+        # convert to desired type
+        storage.mode(values) <- type
     }
     return(values)
 }
@@ -1035,10 +1040,15 @@
 
 .raster_template <- function(base_file, out_file, nlayers, data_type,
                              missing_value) {
+    base_file <- .file_path_expand(base_file)
+    out_file <- .file_path_expand(out_file)
+    if (!file.exists(base_file)) {
+        stop(.conf("messages", ".raster_template"))
+    }
     # Create an empty image template
     .gdal_translate(
-        file = .file_path_expand(out_file),
-        base_file = .file_path_expand(base_file),
+        file = out_file,
+        base_file = base_file,
         params = list(
             "-ot" = .raster_gdal_datatype(data_type),
             "-of" = .conf("gdal_presets", "image", "of"),
@@ -1097,66 +1107,56 @@
         # Expand paths for block_files
         merge_files <- .file_path_expand(merge_files)
         # check if block_files length is at least one
-        .check_file(
-            x = merge_files,
-            extensions = "tif"
-        )
+        .check_file(x = merge_files, extensions = "tif")
         # Get number of layers
         nlayers <- .raster_nlayers(.raster_open_rast(merge_files[[1L]]))
+        # Run-time options
+        conf_opts <- unlist(.conf("gdal_presets", "options"))
+        # Check base_file
         if (.has(base_file)) {
-            # Create raster template
-            .raster_template(
-                base_file = base_file, out_file = out_file, nlayers = nlayers,
-                data_type = data_type, missing_value = missing_value
-            )
-            # Merge into template
-            .try(
-                {
-                    # merge using gdal warp
-                    suppressWarnings(
-                        .gdal_warp(
-                            file = out_file,
-                            base_files = merge_files,
-                            params = list(
-                                "-wo" = paste0("NUM_THREADS=", multicores),
-                                "-co" = .conf("gdal_creation_options"),
-                                "-multi" = TRUE,
-                                "-overwrite" = TRUE
-                            ),
-                            quiet = TRUE
-                        )
-                    )
-                },
-                .rollback = {
-                    unlink(out_file)
-                }
-            )
-        } else {
-            # Merge into template
-            .try(
-                {
-                    # merge using gdal warp
-                    suppressWarnings(
-                        .gdal_warp(
-                            file = out_file,
-                            base_files = merge_files,
-                            params = list(
-                                "-wo" = paste0("NUM_THREADS=", multicores),
-                                "-ot" = .raster_gdal_datatype(data_type),
-                                "-multi" = TRUE,
-                                "-of" = .conf("gdal_presets", "image", "of"),
-                                "-co" = .conf("gdal_creation_options"),
-                                "-overwrite" = FALSE
-                            ),
-                            quiet = TRUE
-                        )
-                    )
-                },
-                .rollback = {
-                    unlink(out_file)
-                }
-            )
+            file.exists(base_file)
         }
+        # Merge into template
+        .try(
+            {
+                # Create VRT
+                vrt_file <- .file_path(
+                    .file_sans_ext(out_file),
+                    ext = "vrt",
+                    output_dir = .file_dir(out_file)
+                )
+                sf::gdal_utils(
+                    util = "buildvrt",
+                    source = merge_files,
+                    destination = vrt_file,
+                    quiet = TRUE
+                )
+                # merge using gdal warp
+                suppressWarnings(
+                    .gdal_warp(
+                        file = out_file,
+                        base_files = vrt_file,
+                        params = list(
+                            "-multi" = TRUE,
+                            "-wo" = paste0("NUM_THREADS=", multicores),
+                            "-of" = .conf("gdal_presets", "gtiff", "of"),
+                            "-ot" = .raster_gdal_datatype(data_type),
+                            "-co" = .conf("gdal_presets", "gtiff", "co"),
+                            "-overwrite" = TRUE
+                        ),
+                        conf_opts = conf_opts,
+                        quiet = TRUE
+                    )
+                )
+            },
+            .rollback = {
+                unlink(c(vrt_file, out_file))
+            },
+            .finally = {
+                # Delete temporary files
+                unlink(c(vrt_file))
+            }
+        )
     }
     return(invisible(out_files))
 }

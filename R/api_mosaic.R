@@ -143,12 +143,12 @@
         }
         # Define gdal parameters
         gdal_params <- list(
-            "-ot" = .gdal_data_type[[.data_type(band_conf)]],
-            "-of" = .conf("gdal_presets", "image", "of"),
-            "-co" = .conf("gdal_presets", "image", "co"),
-            "-t_srs" = .as_crs(crs),
+            "-multi" = TRUE,
             "-wo" = paste0("NUM_THREADS=", multicores),
-            "-multi" = FALSE,
+            "-ot" = .raster_gdal_datatype(.data_type(band_conf)),
+            "-of" = .conf("gdal_presets", "cog", "of"),
+            "-co" = .conf("gdal_presets", "cog", "co"),
+            "-t_srs" = .as_crs(crs),
             "-srcnodata" = .miss_value(band_conf)
         )
         if (.has(res)) {
@@ -161,8 +161,6 @@
             params = gdal_params,
             quiet = TRUE
         )
-        # Create COG overviews
-        .gdal_addo(base_file = out_file)
         # Create tile based on template
         .tile_from_file(
             file = out_file, base_tile = base_tile,

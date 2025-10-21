@@ -233,9 +233,19 @@ vector_cube          :
 
 # GDAL GTiff presets
 gdal_presets         :
+    options          :
+        GDAL_CACHEMAX: "4096"
     cog              :
         overviews    : [2, 4, 8, 16]
         method       : "NEAREST"
+        of           : "COG"
+        co           : ["COMPRESS=ZSTD", "PREDICTOR=2", "ZSTD_LEVEL=1",
+                        "OVERVIEW_COUNT=9", "BLOCKSIZE=512", "BIGTIFF=YES"]
+    gtiff            :
+        of           : "GTiff"
+        co           : ["COMPRESS=ZSTD", "PREDICTOR=2", "ZSTD_LEVEL=1",
+                        "BIGTIFF=YES", "TILED=YES", "BLOCKXSIZE=512",
+                        "BLOCKYSIZE=512"]
     image            :
         of           : "GTiff"
         co           : ["COMPRESS=LZW", "PREDICTOR=2", "BIGTIFF=YES",
