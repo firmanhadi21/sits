@@ -1481,6 +1481,10 @@ NULL
         file_info <- slider::slide_dfr(file_info, function(fi) {
             # Get tile path
             path <- fi[["path"]]
+            # is file NA?
+            if (is.na(path)) {
+                return(path)
+            }
             # is file exists in local path?
             if (file.exists(path)) {
                 return(path)
