@@ -208,6 +208,8 @@ sits_reclassify.class_cube <- function(cube, ...,
             labels = cube_labels,
             reclassify_fn = reclassify_fn,
             block = block,
+            multicores = multicores,
+            memsize = memsize,
             output_dir = output_dir,
             version = version,
             progress = progress

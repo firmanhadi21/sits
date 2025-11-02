@@ -199,23 +199,23 @@ NULL
 #' @param tile   A tile.
 #' @param labels A character vector with new labels
 #' @return vector of labels
-.tile_update_label <- function(tile, labels) {
+.tile_update_label <- function(tile, labels, ...) {
     UseMethod(".tile_update_label", tile)
 }
 
 #' @export
-.tile_update_label.class_cube <- function(tile, labels) {
+.tile_update_label.class_cube <- function(tile, labels, multicores, memsize) {
     # Open classified raster
     tile_rast <- .raster_open_rast(.tile_path(tile))
     # Get frequency values
-    freq_tbl <- .raster_freq(tile_rast)
+    unique_vals <- .cube_unique_values(tile, multicores, memsize)
     # Get tile labels
     tile_labels <- .tile_labels(tile)
     if (is.null(names(tile_labels))) {
         names(tile_labels) <- seq_along(tile_labels)
     }
     # Get new labels values
-    tile_labels <- tile_labels[.as_chr(freq_tbl[["value"]])]
+    tile_labels <- tile_labels[.as_chr(unique_vals)]
     # Set new labels
     .tile_labels(tile) <- tile_labels
     # Return tile with updated labels
