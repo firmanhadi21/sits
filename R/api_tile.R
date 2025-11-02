@@ -199,7 +199,7 @@ NULL
 #' @param tile   A tile.
 #' @param labels A character vector with new labels
 #' @return vector of labels
-.tile_update_label <- function(tile, labels, ...) {
+.tile_update_label <- function(tile, labels, multicores, memsize) {
     UseMethod(".tile_update_label", tile)
 }
 
@@ -223,7 +223,7 @@ NULL
 }
 
 #' @export
-.tile_update_label.default <- function(tile, labels) {
+.tile_update_label.default <- function(tile, labels, multicores, memsize) {
     stop(.conf("messages", ".tile_update_label_default"))
 }
 
