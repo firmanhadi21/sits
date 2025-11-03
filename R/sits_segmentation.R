@@ -454,14 +454,23 @@ sits_snic <- function(data = NULL,
             stop("nrow(data) must equal width * height for the current block.")
         }
 
-        # Run SNIC (grid seeds by passing NULL seeds + step)
+        # Run SNIC: 1) create seeds 2) run snic
+
+        # snic arrays are R arrays (column-major stored)
+        dim(data) <- c(width, height, ncol(data))
+        data <- aperm(data, c(2, 1, 3))
+        seeds <- snic::snic_hex_grid(
+            img = data,
+            spacing = step
+        )
         seg_mat <- snic::snic(
             img = data,
-            width = width,
-            height = height,
-            compactness = compactness,
-            grid_step = as.integer(step)
+            seeds = seeds,
+            compactness = compactness
         )
+        # terra arrays are row-major stored
+        seg_mat <- aperm(seg_mat, c(2, 1, 3))
+        dim(seg_mat) <- c(width * height, 1L)
 
         # Write labels to raster and set NA value if present
         v_obj <- .raster_set_values(v_temp, seg_mat)
