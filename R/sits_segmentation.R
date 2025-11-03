@@ -468,6 +468,7 @@ sits_snic <- function(data = NULL,
             seeds = seeds,
             compactness = compactness
         )
+
         # terra arrays are row-major stored
         seg_mat <- aperm(seg_mat, c(2, 1, 3))
         dim(seg_mat) <- c(width * height, 1L)
