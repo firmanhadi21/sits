@@ -46,7 +46,8 @@ if (sits_run_examples()) {
             compactness = 1
         ),
         output_dir = tempdir(),
-        version = "snic-demo"
+        multicores = 1L,
+        version = "slic-demo"
     )
     # create a classification model
     rfor_model <- sits_train(samples_modis_ndvi, sits_rfor())

@@ -428,6 +428,7 @@ sits_snic <- function(data = NULL,
                       verbose = FALSE) {
     # basic arg checks (keep behavior similar to sits_slic)
     .check_set_caller("sits_snic")
+    .check_require_packages("snic")
     .check_int_parameter(step, min = 1L, max = 500L)
     .check_num_parameter(compactness, min = 0.0, max = 1e6)
     verbose <- .message_verbose(verbose)

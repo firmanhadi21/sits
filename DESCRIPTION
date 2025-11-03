@@ -97,6 +97,7 @@ Suggests:
     RColorBrewer,
     RcppArmadillo (>= 14.0.0),
     scales,
+    snic,
     spdep,
     stars,
     stringr,
