@@ -360,3 +360,132 @@ sits_slic <- function(data = NULL,
         v_obj
     }
 }
+#' @title Segment an image using SNIC
+#' @name sits_snic
+#'
+#' @author Rolf Simoes, \email{rolfsimoes@@gmail.com}
+#' @author Felipe Carvalho, \email{felipe.carvalho@@inpe.br}
+#' @author Felipe Carlos, \email{efelipecarlos@@gmail.com}
+#'
+#' @description
+#' Apply a segmentation on a data cube based on the \code{snic} package.
+#' This is an adaptation and extension to remote sensing data of the
+#' SNIC superpixels algorithm proposed by Achanta et al. (2017).
+#' See references for more details.
+#'
+#' @param data        (unused here; kept for parity with sits_slic signature)
+#' @param step        Distance (in number of cells) between grid seeds.
+#' @param compactness SNIC compactness (>= 0). Larger → more spatial compactness.
+#' @param minarea     Minimal segment size (in cells) for polygon cleaning.
+#'                    (Kept for API parity; handled by raster-to-polygons dissolve.)
+#' @param verbose     Show progress (logical)?
+#'
+#' @return            Function closure consumable by sits::sits_segment()
+#'                    that returns an sf polygon layer with columns:
+#'                    supercells (label), x, y (centroid coords), geometry.
+#'
+#' @examples
+#' if (sits_run_examples()) {
+#'     data_dir <- system.file("extdata/raster/mod13q1", package = "sits")
+#'     # create a data cube
+#'     cube <- sits_cube(
+#'         source = "BDC",
+#'         collection = "MOD13Q1-6.1",
+#'         data_dir = data_dir
+#'     )
+#'     # segment the vector cube
+#'     segments <- sits_segment(
+#'         cube = cube,
+#'         seg_fn = sits_snic(
+#'             step = 10,
+#'             compactness = 1
+#'         ),
+#'         output_dir = tempdir(),
+#'         multicores = 1L,
+#'         version = "slic-demo"
+#'     )
+#'     # create a classification model
+#'     rfor_model <- sits_train(samples_modis_ndvi, sits_rfor())
+#'     # classify the segments
+#'     seg_probs <- sits_classify(
+#'         data = segments,
+#'         ml_model = rfor_model,
+#'         output_dir = tempdir(),
+#'         version = "slic-demo"
+#'     )
+#'     # label the probability segments
+#'     seg_label <- sits_label_classification(
+#'         cube = seg_probs,
+#'         output_dir = tempdir(),
+#'         version = "slic-demo"
+#'     )
+#' }
+#'
+#' @export
+sits_snic <- function(data = NULL,
+                      step = 30L,
+                      compactness = 10.0,
+                      verbose = FALSE) {
+    # basic arg checks (keep behavior similar to sits_slic)
+    .check_set_caller("sits_snic")
+    .check_int_parameter(step, min = 1L, max = 500L)
+    .check_num_parameter(compactness, min = 0.0, max = 1e6)
+    verbose <- .message_verbose(verbose)
+
+    function(data, block, bbox) {
+        # Build a 1-band template raster matching the current block
+        v_temp <- .raster_new_rast(
+            nrows = block[["nrows"]], ncols = block[["ncols"]],
+            xmin = bbox[["xmin"]], xmax = bbox[["xmax"]],
+            ymin = bbox[["ymin"]], ymax = bbox[["ymax"]],
+            nlayers = 1L, crs = bbox[["crs"]]
+        )
+
+        # Dimensions and matrix form (rows = pixels, cols = bands/features)
+        height <- .raster_nrows(v_temp)
+        width <- .raster_ncols(v_temp)
+
+        # 'data' is expected to be a numeric matrix with nrow = width*height (row-major)
+        if (!is.matrix(data) || !is.numeric(data)) {
+            stop("`data` must be a numeric matrix with one row per pixel and columns as bands/features.")
+        }
+        if (nrow(data) != width * height) {
+            stop("nrow(data) must equal width * height for the current block.")
+        }
+
+        # Run SNIC (grid seeds by passing NULL seeds + step)
+        seg_mat <- snic::snic(
+            img = data,
+            width = width,
+            height = height,
+            compactness = compactness,
+            grid_step = as.integer(step)
+        )
+
+        # Write labels to raster and set NA value if present
+        v_obj <- .raster_set_values(v_temp, seg_mat)
+        v_obj <- .raster_set_na(v_obj, -1L)
+
+        # Polygons (dissolve = TRUE merges touching same-label areas)
+        v_obj <- .raster_extract_polygons(v_obj, dissolve = TRUE)
+        v_obj <- sf::st_as_sf(v_obj)
+
+        if (nrow(v_obj) == 0L) {
+            return(v_obj)
+        }
+
+        # Add centers as x,y (use geometry centroids in CRS units)
+        # This keeps the same column contract as sits_slic, but via sf centroids.
+        ctr <- suppressWarnings(sf::st_centroid(v_obj$geometry))
+        ctr_xy <- sf::st_coordinates(ctr)
+        v_obj[["x"]] <- ctr_xy[, 1L]
+        v_obj[["y"]] <- ctr_xy[, 2L]
+
+        # Keep a stable schema (label column name + x,y + geometry)
+        names(v_obj)[names(v_obj) == "lyr.1"] <- "supercells"
+        v_obj <- v_obj[, c("supercells", "x", "y", "geometry")]
+
+        # 8) Return polygon segments
+        v_obj
+    }
+}
