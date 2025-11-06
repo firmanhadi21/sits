@@ -90,6 +90,7 @@ if (sits_run_examples()) {
         output_dir = tempdir(),
         version = "slic-demo"
     )
+    plot(seg_label)
 }
 }
 \references{

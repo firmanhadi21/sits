@@ -34,6 +34,45 @@ This is an adaptation and extension to remote sensing data of the
 SNIC superpixels algorithm proposed by Achanta and Süsstrunk (2017).
 See reference for more details.
 }
+\examples{
+if (sits_run_examples()) {
+    data_dir <- system.file("extdata/raster/mod13q1", package = "sits")
+    # create a data cube
+    cube <- sits_cube(
+        source = "BDC",
+        collection = "MOD13Q1-6.1",
+        data_dir = data_dir
+    )
+    # segment the vector cube
+    segments <- sits_segment(
+        cube = cube,
+        seg_fn = sits_snic(
+            grid_seeding = "rectangular",
+            spacing = 10,
+            compactness = 0.5,
+            padding = 5
+        ),
+        output_dir = tempdir(),
+        version = "snic-demo"
+    )
+    # create a classification model
+    rfor_model <- sits_train(samples_modis_ndvi, sits_rfor())
+    # classify the segments
+    seg_probs <- sits_classify(
+        data = segments,
+        ml_model = rfor_model,
+        output_dir = tempdir(),
+        version = "snic-demo"
+    )
+    # label the probability segments
+    seg_label <- sits_label_classification(
+        cube = seg_probs,
+        output_dir = tempdir(),
+        version = "snic-demo"
+    )
+    plot(seg_label)
+}
+}
 \references{
 "Superpixels and Polygons Using Simple Non-Iterative Clustering",
 R. Achanta and S. Süsstrunk, CVPR 2017.
