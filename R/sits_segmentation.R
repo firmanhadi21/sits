@@ -434,10 +434,9 @@ sits_snic <- function(data = NULL,
                       grid_seeding = "rectangular",
                       spacing = 10,
                       compactness = 0.5,
-                      padding = floor(spacing/2)){
-
+                      padding = floor(spacing / 2)) {
     # require slic package
-    .check_require_packages("slic")
+    .check_require_packages("snic")
     # set caller for error msg
     .check_set_caller("sits_snic")
     # spacing is OK?
