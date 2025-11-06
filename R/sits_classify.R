@@ -460,7 +460,7 @@ sits_classify.raster_cube <- function(data,
     })
 }
 #' @title   Classify a segmented data cube
-#' @name sits_classify.segs_cube
+#' @name sits_classify.vector_cube
 #' @description
 #' This function is called when the input is a vector data cube.
 #' Vector data cubes are produced when closed regions are obtained

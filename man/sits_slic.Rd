@@ -19,7 +19,7 @@ sits_slic(
 \item{data}{A matrix with time series.}
 
 \item{step}{Distance (in number of cells) between initial
-supercells' centers.}
+supercells' centers}
 
 \item{compactness}{A compactness value. Larger values cause clusters to
 be more compact/even (square).}

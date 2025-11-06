@@ -603,8 +603,9 @@ colors:
         Secondary_Vegetation        : &sec_vec "#40C772"
         # Deforestation, Degradation, Mining
         # Based on "Alizarin" palette from Flat Design Color Chart "#afc97f"
-        Degradation                 : &degradation "#94B396" #"B8750B" # "#9BE1B5"
+        Degradation                 : &degradation "#B0AC61" #"B8750B" # "#9BE1B5"
         Degraded_Forest             : *degradation
+        Degradation_Fire            : "#D98B2B"
         # PRODES
         # Based on "Alizarin" palette from Flat Design Color Chart
         Burned_Area                  : &burned_area "#EC7063"
