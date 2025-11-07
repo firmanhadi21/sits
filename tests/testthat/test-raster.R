@@ -634,7 +634,7 @@ test_that("Classification with post-processing", {
 
     expect_error(.tile_update_label(
         sinop_probs,
-        c("Cerrado", "Floresta", "Pastagem", "Soja_Milho")
+        c("Cerrado", "Floresta", "Pastagem", "Soja_Milho"), multicores = 1, memsize = 2
     ))
 
     class(sinop4) <- "data.frame"

@@ -9,12 +9,14 @@
 #' @param  labels          Output labels
 #' @param  reclassify_fn   Function to be applied for reclassification
 #' @param  block           Image block to be processed
+#' @param  multicores      Number of cores to run the function
+#' @param  memsize         Maximum overall memory (in GB) to run the function
 #' @param  output_dir      Directory where image will be save
 #' @param  version         Version of result.
 #' @param  progress        Show progress bar?
 #' @return reclassified tile
 .reclassify_tile <- function(tile, mask, band, labels, reclassify_fn, block,
-                             output_dir, version, progress) {
+                             multicores, memsize, output_dir, version, progress) {
     # Output files
     out_file <- .file_derived_name(
         tile = tile, band = band, version = version, output_dir = output_dir
@@ -31,7 +33,12 @@
             update_bbox = FALSE
         )
         # Update tile labels
-        class_tile <- .tile_update_label(class_tile, labels)
+        class_tile <- .tile_update_label(
+            tile = class_tile,
+            labels = labels,
+            multicores = multicores,
+            memsize = memsize
+        )
         return(class_tile)
     }
     # Create chunks as jobs
@@ -129,7 +136,12 @@
         update_bbox = FALSE
     )
     # Update tile labels
-    class_tile <- .tile_update_label(class_tile, labels)
+    class_tile <- .tile_update_label(
+        tile = class_tile,
+        labels = labels,
+        multicores = multicores,
+        memsize = memsize
+    )
     # Return class tile
     class_tile
 }
