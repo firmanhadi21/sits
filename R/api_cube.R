@@ -367,19 +367,13 @@ NULL
 #'
 #' @return A \code{vector} with the areas of the cube labels.
 .cube_class_areas <- function(cube) {
-    # Get area for each class for each row of the cube
-    freq_lst <- slider::slide(cube, function(tile) {
-        # Get the frequency count and value for each labelled image
-        .tile_area_freq(tile)
-    })
-    # Get a tibble by binding the row (duplicated labels with different counts)
-    freq <- do.call(rbind, freq_lst)
+    # Get cube area / pixel frequency
+    freq <- .cube_area_freq(cube)
     # summarize the counts for each label
     freq <- freq |>
         dplyr::filter(!is.na(class)) |>
         dplyr::group_by(class) |>
         dplyr::summarise(area = sum(.data[["area"]]))
-
     # Area is taken as the sum of pixels
     class_areas <- freq[["area"]]
     # Names of area are the classes
@@ -388,7 +382,40 @@ NULL
     class_areas[is.na(class_areas)] <- 0.0
     class_areas
 }
-
+#' @title Return areas/frequency of classes of a class_cube
+#' @keywords internal
+#' @noRd
+#' @name .cube_area_freq
+#' @param cube       class cube
+#'
+#' @return A \code{vector} with the area and pixel frequency of the cube labels.
+.cube_area_freq <- function(cube) {
+    UseMethod(".cube_area_freq", cube)
+}
+#' @export
+.cube_area_freq.class_cube <- function(cube) {
+    # Get area for each class for each row of the cube
+    slider::slide_dfr(cube, function(tile) {
+        # Get the frequency count and value for each labelled image
+        .tile_area_freq(tile)
+    }) |>
+        dplyr::filter(!is.na(.data[["class"]]))
+}
+#' @export
+.cube_area_freq.class_vector_cube <- function(cube) {
+    # Get area for each class for each row of the cube
+    slider::slide_dfr(cube, function(tile) {
+        # Get the frequency count and value for each labelled image
+        .tile_area_freq(tile)
+    }) |>
+        dplyr::filter(!is.na(.data[["class"]]))
+}
+#' @export
+.cube_area_freq.default <- function(cube) {
+    cube <- tibble::as_tibble(cube)
+    cube <- .cube_find_class(cube)
+    .cube_area_freq(cube)
+}
 #' @title Return bands of a data cube
 #' @keywords internal
 #' @noRd
