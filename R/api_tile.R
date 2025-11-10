@@ -1393,24 +1393,53 @@ NULL
 }
 #' @export
 .tile_area_freq.class_cube <- function(tile) {
-    # Open first raster
-    rast <- .raster_open_rast(.tile_path(tile))
-    # Retrieve the frequency
-    freq <- tibble::as_tibble(.raster_freq(rast))
-    # get labels
-    labels <- .tile_labels(tile)
-    # pixel area
-    # convert the area to hectares
-    # assumption: spatial resolution unit is meters
-    area <- freq[["count"]] * .tile_xres(tile) * .tile_yres(tile) / 10000.0
-    # Include class names
-    freq <- dplyr::mutate(
-        freq,
-        area = area,
-        class = labels[as.character(freq[["value"]])]
+    # get tile crs
+    tile_crs <- .tile_crs(tile)
+    # get tile crs unit (metre or degree)
+    tile_crs_unit <- sf::st_crs(tile_crs)$units_gdal
+    # extract the file path
+    tile_file <- .tile_paths(tile)
+    # read the files with terra
+    rast <- .raster_open_rast(tile_file)
+    # get area by pixels
+    if (tile_crs_unit == "metre") {
+        # get a frequency of values
+        class_areas <- .raster_freq(rast) |>
+            dplyr::select(-.data[["layer"]])
+        # transform to km^2
+        cell_size <- .tile_xres(tile) * .tile_yres(tile)
+        class_areas[["area"]] <- (class_areas[["count"]] * cell_size) / 1000000L
+    } else {
+        # get pixels by class
+        class_count <- .raster_freq(rast)
+        # get area by class in km^2
+        class_areas <- .raster_area(rast = rast, unit = "km", byValue = TRUE)
+        # Merge area and pixel count
+        class_areas <- dplyr::full_join(class_count, class_areas, by = "value") |>
+            dplyr::select(-.data[["layer.x"]], -.data[["layer.y"]])
+    }
+    # change value to character
+    class_areas <- dplyr::mutate(
+        class_areas,
+        value = as.character(.data[["value"]])
     )
-    # Return frequencies
-    freq
+    # create a data.frame with the labels
+    tile_labels <- .tile_labels(tile)
+    df1 <- tibble::tibble(
+        value = names(tile_labels),
+        class = unname(tile_labels)
+    )
+    # join the labels with the areas
+    sum_areas <- dplyr::full_join(df1, class_areas, by = "value")
+    sum_areas <- dplyr::mutate(sum_areas,
+                               area = signif(.data[["area"]], 2L),
+                               .keep = "unused"
+    )
+    # replace na
+    sum_clean <- sum_areas |>
+        tidyr::replace_na(list(count = 0L, area = 0.0))
+
+    sum_clean
 }
 #' @export
 .tile_area_freq.class_vector_cube <- function(tile) {

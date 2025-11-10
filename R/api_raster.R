@@ -883,6 +883,20 @@
     terra::freq(x = rast, bylayer = TRUE)
 }
 
+#' @title Raster package internal area value
+#' @name .raster_area
+#' @keywords internal
+#' @noRd
+#' @author Felipe Carlos, \email{efelipecarlos@@gmail.com}
+#'
+#' @param rast    raster package object to count values
+#' @param ...      additional parameters to be passed to raster package
+#'
+#' @return matrix with layer, value, and area columns
+.raster_area <- function(rast, ...) {
+    terra::expanse(x = rast, ...)
+}
+
 #' @title Raster package internal raster data type
 #' @name .raster_datatype
 #' @keywords internal
