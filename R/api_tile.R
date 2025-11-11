@@ -1394,15 +1394,17 @@ NULL
 #' @export
 .tile_area_freq.class_cube <- function(tile) {
     # get tile crs
-    tile_crs <- .tile_crs(tile)
+    tile_crs <- sf::st_crs(.tile_crs(tile))
     # get tile crs unit (metre or degree)
-    tile_crs_unit <- sf::st_crs(tile_crs)$units_gdal
+    tile_crs_unit <- tile_crs$units_gdal
+    # validate if crs is equal area
+    tile_crs_equal_area <- .crs_is_equal_area(tile_crs)
     # extract the file path
     tile_file <- .tile_paths(tile)
     # read the files with terra
     rast <- .raster_open_rast(tile_file)
     # get area by pixels
-    if (tile_crs_unit == "metre") {
+    if (!tile_crs_equal_area && tile_crs_unit == "metre") {
         # get a frequency of values
         class_areas <- .raster_freq(rast) |>
             dplyr::select(-.data[["layer"]])
