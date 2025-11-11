@@ -447,12 +447,12 @@ summary.variance_cube <- function(object, ...,
 #' @export
 summary.class_cube <- function(object, ...) {
     .check_set_caller("summary_class_cube")
-    # check if cube has only metre crs
+    # check if cube has only metre crs and is not equal area
     cube_has_only_metre_crs <- slider::slide_lgl(object, function(tile) {
         # get tile crs
-        tile_crs <- .tile_crs(tile)
+        tile_crs <- sf::st_crs(.tile_crs(tile))
         # check unit
-        sf::st_crs(tile_crs)$units_gdal == "metre"
+        tile_crs$units_gdal == "metre" && !.crs_is_equal_area(tile_crs)
     })
     # all must be true
     cube_has_only_metre_crs <- all(cube_has_only_metre_crs)
