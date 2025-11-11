@@ -1,0 +1,3 @@
+<!DOCTYPE qgis PUBLIC 'http://mrcc.com/qgis.dtd' 'SYSTEM'>
+<qgis version="3.30.2-'s-Hertogenbosch" styleCategories="Symbology">
+  <renderer-v2 symbollevels="0" attr="class" forceraster="0" referencescale="-1" type="categorizedSymbol" enableorderby="0">
