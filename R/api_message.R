@@ -76,6 +76,15 @@
         )
     }
 }
+#' @title Warning when converting a slow area calculation will be performed
+#' @name .message_warnings_slow_area_calculation
+#' @noRd
+#' @returns Called for side effects
+.message_warnings_slow_area_calculation <- function() {
+    if (.message_warnings()) {
+        warning(.conf("messages", "summary_class_cube_slow_area"), call. = FALSE)
+    }
+}
 #' @title Test if progress bar should be shown
 #' @name .message_progress
 #' @noRd

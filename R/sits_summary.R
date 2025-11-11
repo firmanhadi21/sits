@@ -447,49 +447,21 @@ summary.variance_cube <- function(object, ...,
 #' @export
 summary.class_cube <- function(object, ...) {
     .check_set_caller("summary_class_cube")
-    # Extract classes values for each tiles using a sample size
-    classes_areas <- slider::slide(object, function(tile) {
-        # extract the file path
-        tile_file <- .tile_paths(tile)
-        # read the files with terra
-        r <- .raster_open_rast(tile_file)
-        # get a frequency of values
-        class_areas <- .raster_freq(r)
-        # transform to km^2
-        cell_size <- .tile_xres(tile) * .tile_yres(tile)
-        class_areas[["area"]] <- (class_areas[["count"]] * cell_size) / 1000000L
-        # change value to character
-        class_areas <- dplyr::mutate(
-            class_areas,
-            value = as.character(.data[["value"]])
-        )
-        # create a data.frame with the labels
-        tile_labels <- .tile_labels(tile)
-        df1 <- tibble::tibble(
-            value = names(tile_labels),
-            class = unname(tile_labels)
-        )
-        # join the labels with the areas
-        sum_areas <- dplyr::full_join(df1, class_areas, by = "value")
-        sum_areas <- dplyr::mutate(sum_areas,
-            area_km2 = signif(.data[["area"]], 2L),
-            .keep = "unused"
-        )
-        # remove layer information
-        sum_clean <- sum_areas[, -3L] |>
-            tidyr::replace_na(list(layer = 1L, count = 0L, area_km2 = 0.0))
-
-        sum_clean
+    # check if cube has only metre crs and is not equal area
+    cube_has_only_metre_crs <- slider::slide_lgl(object, function(tile) {
+        # get tile crs
+        tile_crs <- sf::st_crs(.tile_crs(tile))
+        # check unit
+        tile_crs$units_gdal == "metre" && !.crs_is_equal_area(tile_crs)
     })
-    # Combine tiles areas
-    classes_areas <- dplyr::bind_rows(classes_areas) |>
-        dplyr::group_by(.data[["value"]], .data[["class"]]) |>
-        dplyr::summarise(
-            count = sum(.data[["count"]]),
-            area_km2 = sum(.data[["area_km2"]]),
-            .groups = "keep"
-        ) |>
-        dplyr::ungroup()
-    # Return classes areas
-    classes_areas
+    # all must be true
+    cube_has_only_metre_crs <- all(cube_has_only_metre_crs)
+    # if there is any non-metre crs, inform user about slow area calculation
+    if (!cube_has_only_metre_crs) {
+        # show warning message or slow area calculation
+        .message_warnings_slow_area_calculation()
+    }
+    # Extract cube class areas
+    .cube_area_freq(object) |>
+        dplyr::rename(area_km2 = "area")
 }

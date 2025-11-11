@@ -233,7 +233,25 @@ NULL
     proj4string <- crs_sf[["proj4string"]]
     proj4string
 }
-
+#' @title Verify if CRS is equal area
+#' @name .crs_is_equal_area
+#' @noRd
+#' @param wkt_crs  CRS in WKT name
+#' @returns  CRS in PROJ4 name
+.crs_is_equal_area <- function(crs) {
+    # Transform CRS to Sf object
+    proj4_string <- sf::st_crs(crs)$proj4string
+    # Define equal area codes
+    equal_area_codes <- c("aea", "laea", "cea", "moll", "sinu", "robin", "vandg")
+    # Verify if CRS is equal area
+    is_equal_area <- any(sapply(equal_area_codes, function(code)
+        grepl(
+            paste0("\\+proj=", code), proj4_string
+        ))
+    )
+    # Return!
+    return(is_equal_area)
+}
 #' @title Check if CRS is WGS84
 #' @name .is_crs_wgs84
 #' @noRd
