@@ -5,109 +5,161 @@ using namespace Rcpp;
 // Code adapted from ImputeTS R Package
 // https://github.com/SteffenMoritz/imputeTS/commit/163f8e645f31f961bddae29e2e94e2044f1a125d
 //
-struct pow_wrapper {
-    public: double operator()(double a, double b) {
-        return ::pow(a, b);
-    }
+
+// Created enum of integers to avoid string comparisons during window calculations
+enum WeightingType {
+  WT_SIMPLE = 0,
+  WT_LINEAR = 1,
+  WT_EXPONENTIAL = 2
 };
 
-NumericVector vecpow(const IntegerVector base, const NumericVector exp) {
-    NumericVector out(base.size());
-    std::transform(base.cbegin(), base.cend(), exp.cbegin(), out.begin(), pow_wrapper());
-    return out;
+inline bool isNA(double x) {
+    return NumericVector::is_na(x);
+}
+
+inline WeightingType parse_weighting(const String& w) {
+  if (w == "simple")      return WT_SIMPLE;
+  if (w == "linear")      return WT_LINEAR;
+  if (w == "exponential") return WT_EXPONENTIAL;
+
+  stop("Error: Invalid weighting strategy for moving window impute method");
 }
 
 // [[Rcpp::export]]
-NumericVector C_interp_mean_window_vec(NumericVector& data, int k, String weighting) {
-    // If there is less than two NAs, return data as it is.
-    if (sum(is_na(data)) < 2) {
-        return data;
+NumericVector C_interp_mean_window_vec(NumericVector data, int k, String weighting) {
+  const int n = data.size();
+
+  // Keep original values for lookup (do not overwrite while imputing)
+  NumericVector tempdata = clone(data);
+
+  WeightingType wt = parse_weighting(weighting);
+
+  for (int i = 0; i < n; ++i) {
+    if (!isNA(tempdata[i])) {
+      continue;
     }
 
-    Rcpp::NumericVector tempdata = clone(data);
-    // Rcpp::NumericVector out = clone(x);
+    // Maximum distance we ``could`` go before leaving the vector
+    const int maxLeft      = i;
+    const int maxRight     = n - 1 - i;
+    const int maxPossibleD = (maxLeft > maxRight) ? maxLeft : maxRight;
 
-    int n = tempdata.size();
+    int    nonNaCount = 0;
+    double valueSum   = 0.0; // sum of (weight * value)
+    double weightSum  = 0.0; // sum of weights
 
-    for (int i = 0; i < n; i++ ) {
-        // If Value is NA -> impute it based on selected method
-        if (ISNAN(tempdata[i])) {
-            int ktemp = k;
+    // For exponential weights, we can update weight per distance
+    double expWeightForD = 0.5; // 1 / 2^1
 
-            IntegerVector usedIndices = seq(i - ktemp, i + ktemp);
+    for (int d = 1; d <= maxPossibleD; ++d) {
+      double w = 1.0;
 
-            usedIndices = usedIndices[usedIndices >= 0];
-            usedIndices = usedIndices[usedIndices < n];
-            NumericVector t = tempdata[usedIndices];
+      switch (wt) {
+      case WT_SIMPLE:
+        // SMA: all observations in the window are equally weighted for
+        // calculating the mean. So, all neighbors have weight 1 (simple mean)
+        w = 1.0;
 
-            // Search for at least 2 NA-values
-            while (sum(!is_na(t)) < 2) {
-                ktemp = ktemp + 1;
-                usedIndices = seq(i - ktemp, i + ktemp);
-                usedIndices = usedIndices[usedIndices >= 0];
-                usedIndices = usedIndices[usedIndices < n];
-                t = tempdata[usedIndices];
-            }
+        break;
 
-            if (weighting == "simple") {
-                // Calculate mean value
-                NumericVector noNAs = wrap(na_omit(t));
-                data[i] = mean(noNAs);
-            }
-            else if(weighting == "linear") {
-                // Calculate weights based on indices 1/(distance from current index+1)
-                // Set weights where data is NA to 0
-                // Sum up all weights (needed later) to norm it
-                // Create weighted data (weights*data)
-                // Sum up
-                NumericVector weightsData = 1 / (abs(usedIndices - i) + 1);
-                LogicalVector naCheck = !is_na(t);
-                weightsData = weightsData * as<NumericVector>(naCheck);
+      case WT_LINEAR:
+        // LWMA: weights decrease in arithmetical progression. The observations
+        // directly next to a central value i, have weight 1/2, the observations
+        // one further away (i-2,i+2) have weight 1/3, the next (i-3,i+3) have weight 1/4, ...
+        // So, this this case, we use 1 / (current distance + 1):
+        w = 1.0 / (static_cast<double>(d) + 1.0);
 
-                double sumWeights = sum(weightsData);
-                NumericVector weightedData = (t * weightsData) / sumWeights;
-                NumericVector noNAs = wrap(na_omit(weightedData));
+        break;
 
-                data[i] = sum(noNAs);
-            }
-            else if (weighting == "exponential") {
-                // Calculate weights based on indices 1/ 2 ^ (distance from current index)
-                // Set weights where data is NA to 0
-                // Sum up all weights (needed later) to norm it
-                // Create weighted data (weights*data)
-                // Sum up
-                NumericVector expo = abs(usedIndices - i);
-                IntegerVector base = Rcpp::rep(2, expo.size());
-                NumericVector weightsData = 1 / (vecpow(base, expo));
-                LogicalVector naCheck = !is_na(t);
-                weightsData = weightsData * as<NumericVector>(naCheck);
-
-                double sumWeights = sum(weightsData);
-                NumericVector weightedData = (t * weightsData) / sumWeights;
-                NumericVector noNAs = wrap(na_omit(weightedData));
-
-                data[i] = sum(noNAs);
-            }
-            // else {
-            //   stop("Wrong input for parameter weighting. Has to be \"simple\",\"linear\" or \"exponential\"." );
-            // }
+      case WT_EXPONENTIAL:
+        // EWMA: uses weighting factors which decrease exponentially.
+        // The observations directly next to a central value i, have weight 1/2^1,
+        // the observations one further away (i-2,i+2) have weight 1/2^2, ...
+        // So, in this case, to avoid ``pow``, we use current distance directly in a
+        // ``double`` value (original version as calculating using a vector)
+        if (d == 1) {
+          // the neighbors in the left / right positions of current ``d``
+          // have ``Weight = 1/2 ^ 1 = 0.5``
+          expWeightForD = 0.5;
+        } else {
+          // Calculate exponential just accumulating multiplications
+          expWeightForD *= 0.5;
         }
+
+        w = expWeightForD;
+
+        break;
+      }
+
+      // Left neighbor of current ``d``. Do not forget this is the
+      // window, starting in time ``i``.
+      const int jLeft = i - d;
+      if (jLeft >= 0) {
+
+        // Left neighbor value
+        const double v = tempdata[jLeft];
+
+        // If it is not NA, add it to the sum
+        if (!isNA(v)) {
+          ++nonNaCount;
+
+          valueSum  += w * v;
+          weightSum += w;
+        }
+      }
+
+      // Right neighbor of current ``d``. Do not forget this is the
+      // window, starting in time ``i``.
+      const int jRight = i + d;
+      if (jRight < n) {
+
+        // Right neighbor value
+        const double v = tempdata[jRight];
+
+        // If it is not NA, add it to the sum
+        if (!isNA(v)) {
+          ++nonNaCount;
+
+          valueSum  += w * v;
+          weightSum += w;
+        }
+      }
+
+      // We must include at least distance k.
+      // After we've gone out to ``k`` and have at least ``2`` non-NA neighbors,
+      // we can stop expanding the window.
+      if (d >= k && nonNaCount >= 2) {
+        break;
+      }
     }
 
-    return data;
+    // Fallback: if we somehow have no neighbors, keep NA.
+    if (nonNaCount == 0 || weightSum == 0.0) {
+      continue;
+    }
+
+    // As we are using accumulators and generate windows and weights on-the-fly
+    // we can just calculate `mean` with the weights generated using distance * n
+    // For ``simple`` weighting: all weights are ``1``
+    data[i] = valueSum / weightSum;
+  }
+
+  return data;
 }
 
 // [[Rcpp::export]]
-NumericMatrix C_interp_mean_window_mat(NumericMatrix& data, int k, String weighting) {
-    int nrows = data.nrow();
-    int ncols = data.ncol();
+NumericMatrix C_interp_mean_window_mat(NumericMatrix data, int k, String weighting) {
+  const int nrows = data.nrow();
 
-    NumericVector vec(ncols);
+  for (int i = 0; i < nrows; ++i) {
+    // Create a new vector for the row. Easy and safe way to avoid modifying the
+    // original matrix.
+    NumericVector row = data(i, _);
 
-    for (int i = 0; i < nrows; i++) {
-        NumericVector vec = data(i, _);
-        data(i, _) = C_interp_mean_window_vec(vec, k, weighting);
-    }
+    // Use moving window!
+    data(i, _) = C_interp_mean_window_vec(row, k, weighting);
+  }
 
-    return data;
+  // Return!
+  return data;
 }
