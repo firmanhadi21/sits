@@ -249,12 +249,12 @@ BEGIN_RCPP
 END_RCPP
 }
 // C_interp_mean_window_vec
-NumericVector C_interp_mean_window_vec(NumericVector& data, int k, String weighting);
+NumericVector C_interp_mean_window_vec(NumericVector data, int k, String weighting);
 RcppExport SEXP _sits_C_interp_mean_window_vec(SEXP dataSEXP, SEXP kSEXP, SEXP weightingSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< NumericVector& >::type data(dataSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type data(dataSEXP);
     Rcpp::traits::input_parameter< int >::type k(kSEXP);
     Rcpp::traits::input_parameter< String >::type weighting(weightingSEXP);
     rcpp_result_gen = Rcpp::wrap(C_interp_mean_window_vec(data, k, weighting));
@@ -262,12 +262,12 @@ BEGIN_RCPP
 END_RCPP
 }
 // C_interp_mean_window_mat
-NumericMatrix C_interp_mean_window_mat(NumericMatrix& data, int k, String weighting);
+NumericMatrix C_interp_mean_window_mat(NumericMatrix data, int k, String weighting);
 RcppExport SEXP _sits_C_interp_mean_window_mat(SEXP dataSEXP, SEXP kSEXP, SEXP weightingSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< NumericMatrix& >::type data(dataSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type data(dataSEXP);
     Rcpp::traits::input_parameter< int >::type k(kSEXP);
     Rcpp::traits::input_parameter< String >::type weighting(weightingSEXP);
     rcpp_result_gen = Rcpp::wrap(C_interp_mean_window_mat(data, k, weighting));
