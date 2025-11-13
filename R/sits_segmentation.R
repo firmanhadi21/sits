@@ -213,7 +213,7 @@ sits_segment <- function(cube,
 #'
 #' @param data          A matrix with time series.
 #' @param step          Distance (in number of cells) between initial
-#'                      supercells' centers.
+#'                      supercells' centers
 #' @param compactness   A compactness value. Larger values cause clusters to
 #'                      be more compact/even (square).
 #' @param dist_fun      Distance function. Currently implemented:
@@ -282,6 +282,7 @@ sits_segment <- function(cube,
 #'         output_dir = tempdir(),
 #'         version = "slic-demo"
 #'     )
+#'     plot(seg_label)
 #' }
 #' @export
 sits_slic <- function(data = NULL,
@@ -340,7 +341,7 @@ sits_slic <- function(data = NULL,
             return(v_obj)
         }
         # Get valid centers
-        valid_centers <- slic[[2L]][, 1L] != 0L | slic[[2L]][, 2L] != 0L
+        valid_centers <- slic[[2L]][, 1L] != 0L & slic[[2L]][, 2L] != 0L
         # Bind valid centers with segments table
         v_obj <- cbind(
             v_obj, matrix(stats::na.omit(slic[[2L]][valid_centers, ]), ncol = 2L)
@@ -350,13 +351,208 @@ sits_slic <- function(data = NULL,
         # Get the extent of template raster
         v_ext <- .raster_bbox(v_temp)
         # Calculate pixel position by rows and cols
-        xres <- v_obj[["x"]] * .raster_xres(v_temp) + .raster_xres(v_temp) / 2L
-        yres <- v_obj[["y"]] * .raster_yres(v_temp) - .raster_yres(v_temp) / 2L
-        v_obj[["x"]] <- as.vector(v_ext)[[1L]] + xres
-        v_obj[["y"]] <- as.vector(v_ext)[[4L]] - yres
+        x_pos <- v_obj[["x"]] * .raster_xres(v_temp) + .raster_xres(v_temp) / 2L
+        y_pos <- v_obj[["y"]] * .raster_yres(v_temp) - .raster_yres(v_temp) / 2L
+        v_obj[["x"]] <- as.vector(v_ext)[[1L]] + x_pos
+        v_obj[["y"]] <- as.vector(v_ext)[[4L]] - y_pos
         # Get only polygons segments
         v_obj <- suppressWarnings(sf::st_collection_extract(v_obj, "POLYGON"))
         # Return the segment object
         v_obj
     }
+}
+
+#' @title Segment an image using SNIC
+#' @name sits_snic
+#'
+#' @author Rolf Simoes, \email{rolfsimoes@@gmail.com}
+#' @author Gilberto Camara, \email{gilberto.camara@@inpe.br}
+#' @author Felipe Carlos, \email{efelipecarlos@@gmail.com}
+#' @author Felipe Carvalho, \email{felipe.carvalho@@inpe.br}
+#'
+#' @description
+#' Apply a segmentation on a data cube based on the \code{snic} package.
+#' This is an adaptation and extension to remote sensing data of the
+#' SNIC superpixels algorithm proposed by Achanta and Süsstrunk (2017).
+#' See reference for more details.
+#'
+#' @param data          A matrix with time series.
+#' @param grid_seeding  Method for grid seeding (one of
+#'                      "rectangular", "diamond", "hexagonal",
+#'                      "random").
+#' @param spacing       Distance (in number of cells) between initial
+#'                      supercells' centers
+#' @param compactness   A compactness value. Larger values cause clusters to
+#'                      be more compact/even (square).
+#' @param padding       Distance (in pixels) from the image borders within
+#'                      which no seeds are placed.
+#'
+#' @references
+#' "Superpixels and Polygons Using Simple Non-Iterative Clustering",
+#' R. Achanta and S. Süsstrunk, CVPR 2017.
+#'
+#' @examples
+#' if (sits_run_examples()) {
+#'     data_dir <- system.file("extdata/raster/mod13q1", package = "sits")
+#'     # create a data cube
+#'     cube <- sits_cube(
+#'         source = "BDC",
+#'         collection = "MOD13Q1-6.1",
+#'         data_dir = data_dir
+#'     )
+#'     # segment the vector cube
+#'     segments <- sits_segment(
+#'         cube = cube,
+#'         seg_fn = sits_snic(
+#'             grid_seeding = "rectangular",
+#'             spacing = 10,
+#'             compactness = 0.5,
+#'             padding = 5
+#'         ),
+#'         output_dir = tempdir(),
+#'         version = "snic-demo"
+#'     )
+#'     # create a classification model
+#'     rfor_model <- sits_train(samples_modis_ndvi, sits_rfor())
+#'     # classify the segments
+#'     seg_probs <- sits_classify(
+#'         data = segments,
+#'         ml_model = rfor_model,
+#'         output_dir = tempdir(),
+#'         version = "snic-demo"
+#'     )
+#'     # label the probability segments
+#'     seg_label <- sits_label_classification(
+#'         cube = seg_probs,
+#'         output_dir = tempdir(),
+#'         version = "snic-demo"
+#'     )
+#'     plot(seg_label)
+#' }
+#' @export
+sits_snic <- function(data = NULL,
+                      grid_seeding = "rectangular",
+                      spacing = 10,
+                      compactness = 0.5,
+                      padding = floor(spacing / 2)) {
+    # require slic package
+    .check_require_packages("snic")
+    # set caller for error msg
+    .check_set_caller("sits_snic")
+    # spacing is OK?
+    .check_int_parameter(spacing, min = 1L, max = 500L)
+    # compactness is OK?
+    .check_num_parameter(compactness, min = 0L, max = 1L)
+    # padding is OK?
+    .check_int_parameter(padding, min = 0L, max = 500L)
+    # grid seeding
+    .check_snic_grid(grid_seeding)
+
+    # calls SNIC for a matrix
+    function(data, block, bbox) {
+        # Create a template rast
+        v_temp <- .raster_new_rast(
+            nrows = block[["nrows"]], ncols = block[["ncols"]],
+            xmin = bbox[["xmin"]], xmax = bbox[["xmax"]],
+            ymin = bbox[["ymin"]], ymax = bbox[["ymax"]],
+            nlayers = 1L, crs = bbox[["crs"]]
+        )
+        # set dimensions for image
+        img_height = block[["nrows"]]
+        img_width = block[["ncols"]]
+        img_bands = ncol(data)
+        # Adjust data
+        dim(data) <- c(img_width, img_height, img_bands)
+        data <- aperm(data, c(2, 1, 3))
+        # generate seeds for classification
+        seeds <- .snic_grid_seeds(grid_seeding,
+                                  img = data,
+                                  spacing = spacing,
+                                  padding = padding)
+        # use SNIC to produce a one-band segmented raster image
+        seg_img <- snic::snic(img = data,
+                              seeds = seeds,
+                              compactness = compactness)
+        # permute dimensions of one-band raster image
+        seg_img <- aperm(seg_img, c(2, 1, 3))
+        dim(seg_img) <- c(img_width * img_height, 1)
+
+        # extract segments for one-band raster image
+        # Set values and NA value in template raster
+        v_obj <- .raster_set_values(v_temp, seg_img)
+        v_obj <- .raster_set_na(v_obj, -1L)
+        # Extract polygons raster and convert to sf object
+        v_obj <- .raster_extract_polygons(v_obj, dissolve = TRUE)
+        v_obj <- sf::st_as_sf(v_obj)
+        if (nrow(v_obj) == 0L) {
+            return(v_obj)
+        }
+        # Get valid centroids
+        centroids <- suppressWarnings(sf::st_centroid(v_obj))
+        # Extract centroid matrix from centroids
+        centroids_xy <- sf::st_coordinates(centroids)
+        # Bind valid centers with segments table
+        v_obj <- cbind(v_obj, centroids_xy)
+        # Rename columns
+        names(v_obj) <- c("supercells", "x", "y", "geometry")
+        # Get only polygons segments
+        v_obj <- suppressWarnings(sf::st_collection_extract(v_obj, "POLYGON"))
+        # Return the segment object
+        v_obj
+    }
+}
+#' @title Create the seeds for SNIC algorithm
+#' @name .snic_grid_seeds
+#' @keywords internal
+#' @noRd
+#'
+#' @author Rolf Simoes, \email{rolfsimoes@@gmail.com}
+#' @author Gilberto Camara, \email{gilberto.camara@@inpe.br}
+#'
+#' @description
+#' Create a vector of seeds that are used by the SNIC algorithm.
+#'
+#' @param grid_seeding  Method for grid seeding (one of
+#'                      "rectangular", "diamond", "hexagonal",
+#'                      "random")
+#' @param img           3D Matrix to be segmented
+#' @param spacing       Distance (in number of cells) between initial
+#'                      supercells' centers
+#' @param padding       Distance (in pixels) from the image borders within
+#'                      which no seeds are placed.
+#'
+.snic_grid_seeds <- function(grid_seeding,
+                             img,
+                             spacing,
+                             padding){
+    class(grid_seeding) <- grid_seeding
+    UseMethod(".snic_grid_seeds", grid_seeding)
+}
+#' @export
+.snic_grid_seeds.rectangular <- function(grid_seeding = "rectangular",
+                                         img,
+                                         spacing,
+                                         padding) {
+    snic::snic_rect_grid(img, spacing, padding)
+}
+#' @export
+.snic_grid_seeds.diamond <- function(grid_seeding = "diamond",
+                                     img,
+                                     spacing,
+                                     padding) {
+    snic::snic_diamon_grid(img, spacing, padding)
+}
+#' @export
+.snic_grid_seeds.hexagonal <- function(grid_seeding = "hexagonal",
+                                       img,
+                                       spacing,
+                                       padding) {
+    snic::snic_hex_grid(img, spacing, padding)
+}
+#' @export
+.snic_grid_seeds.random <- function(grid_seeding = "random",
+                                    img,
+                                    spacing,
+                                    padding) {
+    snic::snic_random_grid(img, spacing, padding)
 }

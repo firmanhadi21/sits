@@ -8,6 +8,7 @@
   x,
   ...,
   tile = x[["tile"]][[1L]],
+  roi = NULL,
   palette = "RdYlGn",
   rev = TRUE,
   scale = 1,
@@ -21,7 +22,9 @@
 
 \item{tile}{Tile to be plotted.}
 
-\item{palette}{RColorBrewer palette}
+\item{roi}{Region of interest (see note)}
+
+\item{palette}{RColorBrewer or "cols4all" palette}
 
 \item{rev}{Reverse order of colors in palette?}
 
@@ -35,6 +38,19 @@ A plot containing probabilities associated
 }
 \description{
 plots a probability cube using stars
+}
+\note{
+To see which color palettes are supported, please run cols4all::c4a_gui().
+To define a \code{roi} use one of:
+     \itemize{
+       \item{A path to a shapefile with polygons;}
+       \item{A \code{sfc} or \code{sf} object from \code{sf} package;}
+       \item{A \code{SpatExtent} object from \code{terra} package;}
+       \item{A named \code{vector} (\code{"lon_min"},
+            \code{"lat_min"}, \code{"lon_max"}, \code{"lat_max"}) in WGS84;}
+       \item{A named \code{vector} (\code{"xmin"}, \code{"xmax"},
+             \code{"ymin"}, \code{"ymax"}) with XY coordinates.}
+}
 }
 \examples{
 if (sits_run_examples()) {

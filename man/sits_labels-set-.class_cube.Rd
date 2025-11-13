@@ -2,17 +2,17 @@
 % Please edit documentation in R/sits_labels.R
 \name{sits_labels<-.class_cube}
 \alias{sits_labels<-.class_cube}
-\title{Change the labels of a set of time series}
+\title{Change the labels of a classified raster cube}
 \usage{
 \method{sits_labels}{class_cube}(data) <- value
 }
 \arguments{
-\item{data}{Data cube or time series.}
+\item{data}{Classified raster data cube.}
 
 \item{value}{A character vector used to convert labels. Labels will
 be renamed to the respective value positioned at the
 labels order returned by \code{\link{sits_labels}}.}
 }
 \description{
-Change the labels of a set of time series
+Change the labels of a classified raster cube
 }

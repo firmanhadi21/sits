@@ -9,11 +9,15 @@
 #' hyperparameters for deep learning models.
 #'
 #' @note
-#' Machine learning models use stochastic gradient descent (SGD) techniques to
-#' find optimal solutions. To perform SGD, models use optimization
-#' algorithms which have hyperparameters that have to be adjusted
-#' to achieve best performance for each application.
-#
+#'
+#' Machine learning algorithms have hyperparameters that control
+#' the algorithm's behaviour. This function allows users to test
+#' different combinations of hyperparameters for a given sample set,
+#' thus selecting a set of values which fits the training data.
+#' The \code{sits_tuning} function can be used with both traditional
+#' machine learning methods (e.g., random forests) as weel as
+#' deep learning ones.
+#'
 #' Instead of performing an exhaustive test of all parameter combinations,
 #' \code{sits_tuning} selects them randomly.
 #' Validation is done using an independent set
@@ -21,6 +25,11 @@
 #' best hyper-parameters in a list. Hyper-parameters passed to \code{params}
 #' parameter should be passed by calling
 #' \code{\link[sits]{sits_tuning_hparams}}.
+#'
+#' Deep learning models use stochastic gradient descent (SGD) techniques to
+#' find optimal solutions. To perform SGD, models use optimization
+#' algorithms which have hyperparameters that have to be adjusted
+#' to achieve best performance for each application.
 #'
 #'    When using a GPU for deep learning, \code{gpu_memory} indicates the
 #'    memory of the graphics card which is available for processing.
@@ -69,7 +78,7 @@
 #'
 #' @examples
 #' if (sits_run_examples()) {
-#'     # find best learning rate parameters for TempCNN
+#'     # find best learning rate for TempCNN
 #'     tuned <- sits_tuning(
 #'         samples_modis_ndvi,
 #'         ml_method = sits_tempcnn(),
@@ -89,6 +98,22 @@
 #'     accuracy <- tuned$accuracy[[1]]
 #'     kappa <- tuned$kappa[[1]]
 #'     best_lr <- tuned$opt_hparams[[1]]$lr
+#'.
+#'     # find best number of trees for random foresr
+#'     rf_tuned <- sits_tuning(
+#'         samples_modis_ndvi,
+#'         ml_method = sits_rfor(),
+#'         params = sits_tuning_hparams(
+#'             num_trees = choice(100, 200, 300)
+#'         ),
+#'         trials = 10,
+#'         multicores = 2,
+#'         progress = FALSE
+#'     )
+#'     # obtain best accuracy, kappa and best_lr
+#'     rf_accuracy <- rf_tuned$accuracy[[1]]
+#'     rf_kappa <- rf_tuned$kappa[[1]]
+#'     rf_best_num_trees <- rf_tuned$num_trees
 #' }
 #'
 #' @export
@@ -130,7 +155,11 @@ sits_tuning <- function(samples,
     .check_that(!"samples" %in% names(params),
         msg = .conf("messages", "sits_tuning_samples")
     )
+    # get the parameters with defaults
     params_default <- formals(ml_function)
+    # remove dots from parameters
+    params_default <- params_default[names(params_default) != "..."]
+    # check parameters
     .check_chr_within(
         x = names(params),
         within = names(params_default)
