@@ -32,16 +32,17 @@ impute_linear <- function(data = NULL) {
 impute_median <- function(data = NULL) {
     # Define impute function
     impute_fun <- function(data) {
-        # By default, use the vector implementation
-        fnc <- C_interp_median_vec
-
-        # If data is a matrix, use matrix implementation
+        # Matrix
         if (inherits(data, "matrix")) {
-            fnc = C_interp_median_mat
+            C_interp_median_mat(data)
         }
 
-        # Impute!
-        fnc(data = data)
+        # Vector implementation
+        else {
+            as.vector(
+                C_interp_median_vec(data)
+            )
+        }
     }
 
     .factory_function(data, impute_fun)
@@ -60,16 +61,17 @@ impute_median <- function(data = NULL) {
 impute_mean <- function(data = NULL) {
     # Define impute function
     impute_fun <- function(data) {
-        # By default, use the vector implementation
-        fnc <- C_interp_mean_vec
-
-        # If data is a matrix, use matrix implementation
+        # Matrix
         if (inherits(data, "matrix")) {
-            fnc = C_interp_mean_mat
+            C_interp_mean_mat(data)
         }
 
-        # Impute!
-        fnc(data = data)
+        # Vector implementation
+        else {
+            as.vector(
+                C_interp_mean_vec(data)
+            )
+        }
     }
 
     .factory_function(data, impute_fun)
@@ -155,7 +157,7 @@ sits_impute <- function(samples, impute_fn = impute_linear()) {
     .check_samples_ts(samples)
     .samples_foreach_ts(samples, function(row) {
         .ts_values(row) <- tibble::as_tibble(
-            purrr::map_df(.ts_bands(row), function(band) {
+            purrr::map_dfc(.ts_bands(row), function(band) {
                 # get band values
                 band_value <- as.vector(as.matrix(row[[band]]))
                 # impute data
