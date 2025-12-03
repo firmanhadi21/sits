@@ -2,7 +2,7 @@
 % Please edit documentation in R/sits_labels.R
 \name{sits_labels<-.default}
 \alias{sits_labels<-.default}
-\title{Change the labels of a set of time series}
+\title{Change the labels of other data structures}
 \usage{
 \method{sits_labels}{default}(data) <- value
 }
@@ -14,5 +14,5 @@ be renamed to the respective value positioned at the
 labels order returned by \code{\link{sits_labels}}.}
 }
 \description{
-Change the labels of a set of time series
+Change the labels of other data structures
 }

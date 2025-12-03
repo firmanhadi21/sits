@@ -2954,3 +2954,21 @@
         )
     )
 }
+#' @title Check if grid system is supported
+#' @name .check_snic_grid
+#' @author Rolf Simoes, \email{rolf.simoes@@gmail.com}
+#' @author Gilberto Camara, \email{gilberto.camara@@inpe.br}
+#' @param snic_grid   Requested SNIC grid system
+#' @return Called for side effects.
+#' @keywords internal
+#' @noRd
+.check_snic_grid <- function(snic_grid) {
+    .check_chr_contains(
+        x = .conf("snic_grids"),
+        contains = snic_grid,
+        case_sensitive = TRUE,
+        discriminator = "one_of",
+        can_repeat = FALSE,
+        msg = .conf("messages", ".check_snic_grid")
+    )
+}

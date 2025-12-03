@@ -293,6 +293,9 @@ som_outcomes: ["clean", "analyze", "remove"]
 # metadata search strategy
 metadata_search_strategies: ["tile", "feature"]
 
+# SNIC grid parameters
+snic_grids: ["rectangular", "diamond", "hexagonal", "random", "count"]
+
 
 # Colours and plots
 #

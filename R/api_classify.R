@@ -541,18 +541,18 @@
             bands = bands
         )
     }
-    # Apply time series filter
-    if (.has(filter_fn)) {
-        samples <- .apply_across(
-            data = samples,
-            fn = filter_fn
-        )
-    }
     # Apply imputation filter
     if (.has(impute_fn)) {
         samples <- .apply_across(
             data = samples,
             fn = impute_fn
+        )
+    }
+    # Apply time series filter
+    if (.has(filter_fn)) {
+        samples <- .apply_across(
+            data = samples,
+            fn = filter_fn
         )
     }
     # Compute the breaks in time for multiyear classification

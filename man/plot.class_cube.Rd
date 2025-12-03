@@ -26,13 +26,11 @@
 
 \item{tile}{Tile to be plotted.}
 
-\item{roi}{Spatial extent to plot in WGS 84 - named vector
-with either (lon_min, lon_max, lat_min, lat_max) or
-(xmin, xmax, ymin, ymax)}
+\item{roi}{Spatial extent to plot (see note)}
 
 \item{legend}{Named vector that associates labels to colors.}
 
-\item{palette}{Alternative RColorBrewer palette}
+\item{palette}{A RColorBrewer or "cols4all" palette}
 
 \item{scale}{Relative scale (0.4 to 1.0) of plot text}
 
@@ -49,6 +47,7 @@ A  color map, where each pixel has the color
 plots a classified raster using tmap.
 }
 \note{
+To see which color palettes are supported, please run cols4all::c4a_gui().
 The following optional parameters are available to allow for detailed
       control over the plot output:
 \itemize{
@@ -57,6 +56,16 @@ The following optional parameters are available to allow for detailed
 \item \code{legend_text_size}: relative size of legend text (default = 1.0)
 \item \code{legend_bg_color}: color of legend background (default = "white")
 \item \code{legend_bg_alpha}: legend opacity (default = 0.5)
+}
+#' To define a \code{roi} use one of:
+     \itemize{
+       \item{A path to a shapefile with polygons;}
+       \item{A \code{sfc} or \code{sf} object from \code{sf} package;}
+       \item{A \code{SpatExtent} object from \code{terra} package;}
+       \item{A named \code{vector} (\code{"lon_min"},
+            \code{"lat_min"}, \code{"lon_max"}, \code{"lat_max"}) in WGS84;}
+       \item{A named \code{vector} (\code{"xmin"}, \code{"xmax"},
+             \code{"ymin"}, \code{"ymax"}) with XY coordinates.}
 }
 }
 \examples{

@@ -4,6 +4,7 @@
 \alias{sits_snic}
 \title{Segment an image using SNIC}
 \usage{
+<<<<<<< HEAD
 sits_snic(data = NULL, step = 30L, compactness = 10, verbose = FALSE)
 }
 \arguments{
@@ -22,12 +23,42 @@ sits_snic(data = NULL, step = 30L, compactness = 10, verbose = FALSE)
 Function closure consumable by sits::sits_segment()
                    that returns an sf polygon layer with columns:
                    supercells (label), x, y (centroid coords), geometry.
+=======
+sits_snic(
+  data = NULL,
+  grid_seeding = "rectangular",
+  spacing = 10,
+  compactness = 0.5,
+  padding = floor(spacing/2)
+)
+}
+\arguments{
+\item{data}{A matrix with time series.}
+
+\item{grid_seeding}{Method for grid seeding (one of
+"rectangular", "diamond", "hexagonal",
+"random").}
+
+\item{spacing}{Distance (in number of cells) between initial
+supercells' centers}
+
+\item{compactness}{A compactness value. Larger values cause clusters to
+be more compact/even (square).}
+
+\item{padding}{Distance (in pixels) from the image borders within
+which no seeds are placed.}
+>>>>>>> df61845fd4e5e280f6517e1d18a83d3f605cd250
 }
 \description{
 Apply a segmentation on a data cube based on the \code{snic} package.
 This is an adaptation and extension to remote sensing data of the
+<<<<<<< HEAD
 SNIC superpixels algorithm proposed by Achanta et al. (2017).
 See references for more details.
+=======
+SNIC superpixels algorithm proposed by Achanta and Süsstrunk (2017).
+See reference for more details.
+>>>>>>> df61845fd4e5e280f6517e1d18a83d3f605cd250
 }
 \examples{
 if (sits_run_examples()) {
@@ -42,12 +73,22 @@ if (sits_run_examples()) {
     segments <- sits_segment(
         cube = cube,
         seg_fn = sits_snic(
+<<<<<<< HEAD
             step = 10,
             compactness = 1
         ),
         output_dir = tempdir(),
         multicores = 1L,
         version = "slic-demo"
+=======
+            grid_seeding = "rectangular",
+            spacing = 10,
+            compactness = 0.5,
+            padding = 5
+        ),
+        output_dir = tempdir(),
+        version = "snic-demo"
+>>>>>>> df61845fd4e5e280f6517e1d18a83d3f605cd250
     )
     # create a classification model
     rfor_model <- sits_train(samples_modis_ndvi, sits_rfor())
@@ -56,21 +97,44 @@ if (sits_run_examples()) {
         data = segments,
         ml_model = rfor_model,
         output_dir = tempdir(),
+<<<<<<< HEAD
         version = "slic-demo"
+=======
+        version = "snic-demo"
+>>>>>>> df61845fd4e5e280f6517e1d18a83d3f605cd250
     )
     # label the probability segments
     seg_label <- sits_label_classification(
         cube = seg_probs,
         output_dir = tempdir(),
+<<<<<<< HEAD
         version = "slic-demo"
     )
 }
 
+=======
+        version = "snic-demo"
+    )
+    plot(seg_label)
+}
+}
+\references{
+"Superpixels and Polygons Using Simple Non-Iterative Clustering",
+R. Achanta and S. Süsstrunk, CVPR 2017.
+>>>>>>> df61845fd4e5e280f6517e1d18a83d3f605cd250
 }
 \author{
 Rolf Simoes, \email{rolfsimoes@gmail.com}
 
+<<<<<<< HEAD
 Felipe Carvalho, \email{felipe.carvalho@inpe.br}
 
 Felipe Carlos, \email{efelipecarlos@gmail.com}
+=======
+Gilberto Camara, \email{gilberto.camara@inpe.br}
+
+Felipe Carlos, \email{efelipecarlos@gmail.com}
+
+Felipe Carvalho, \email{felipe.carvalho@inpe.br}
+>>>>>>> df61845fd4e5e280f6517e1d18a83d3f605cd250
 }

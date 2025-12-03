@@ -7,9 +7,6 @@
 #' @param  rast          terra spRast object.
 #' @param  band          Band to be plotted.
 #' @param  title         Title of the plot
-#' @param  sf_seg        Segments (sf object)
-#' @param  seg_color     Color to use for segment borders
-#' @param  line_width    Line width to plot the segments boundary
 #' @param  palette       A sequential RColorBrewer palette
 #' @param  rev           Reverse the color palette?
 #' @param  scale         Scale to plot map (0.4 to 1.0)
@@ -18,9 +15,6 @@
 .tmap_false_color <- function(rast,
                               band,
                               title,
-                              sf_seg,
-                              seg_color,
-                              line_width,
                               palette,
                               rev,
                               scale,
@@ -68,12 +62,25 @@
         tmap::tm_layout(
             scale = scale
         )
-    # include segments
-    if (.has(sf_seg)) {
-        p <- p + tmap::tm_shape(sf_seg) +
-            tmap::tm_borders(col = seg_color, lwd = line_width)
-    }
+    p
+}
+#' @title  Plot segments
+#' @name   .tmap_segments
+#' @author Gilberto Camara, \email{gilberto.camara@@inpe.br}
+#' @description plots a set of false color image
+#' @keywords internal
+#' @noRd
+#' @param  sf_seg        Segments (sf object)
+#' @param  seg_color     Color to use for segment borders
+#' @param  line_width    Line width to plot the segments boundary
+#' @return               A list of plot objects
+.tmap_segments <- function(sf_seg,
+                           seg_color,
+                           line_width) {
 
+    p <- tmap::tm_shape(sf_seg) +
+            tmap::tm_borders(col = seg_color,
+                             lwd = line_width)
     p
 }
 #' @title  Plot a DEM
@@ -149,9 +156,6 @@
 #' @param  first_quantile First quantile for stretching images
 #' @param  last_quantile  Last quantile for stretching images
 #' @param  tmap_params   List with tmap params for detailed plot control
-#' @param  sf_seg        Segments (sf object)
-#' @param  seg_color     Color to use for segment borders
-#' @param  line_width    Line width to plot the segments boundary
 #' @return               A list of plot objects
 .tmap_rgb_color <- function(red_file,
                             green_file,
@@ -161,10 +165,8 @@
                             max_value,
                             first_quantile,
                             last_quantile,
-                            tmap_params,
-                            sf_seg,
-                            seg_color,
-                            line_width) {
+                            tmap_params
+                            ) {
     # open RGB file
     rast <- .raster_open_rast(c(red_file, green_file, blue_file))
     names(rast) <- c("red", "green", "blue")
@@ -193,12 +195,6 @@
             bg.color = "white",
             bg.alpha = 0.65
         )
-
-    # include segments
-    if (.has(sf_seg)) {
-        p <- p + tmap::tm_shape(sf_seg) +
-            tmap::tm_borders(col = seg_color, lwd = line_width)
-    }
     p
 }
 #' @title  Plot a probs image
@@ -436,8 +432,12 @@
 #' @param  scale         Scale to plot map (0.4 to 1.0)
 #' @param  tmap_params   Tmap parameters
 #' @return               A plot object
-.tmap_vector_uncert <- function(sf_seg, palette, rev,
-                                type, scale, tmap_params) {
+.tmap_vector_uncert <- function(sf_seg,
+                                palette,
+                                rev,
+                                type,
+                                scale,
+                                tmap_params) {
     # recover palette name used by cols4all
     cols4all_name <- .colors_cols4all_name(palette)
     # reverse order of colors?

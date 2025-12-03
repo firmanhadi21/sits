@@ -213,7 +213,7 @@ sits_segment <- function(cube,
 #'
 #' @param data          A matrix with time series.
 #' @param step          Distance (in number of cells) between initial
-#'                      supercells' centers.
+#'                      supercells' centers
 #' @param compactness   A compactness value. Larger values cause clusters to
 #'                      be more compact/even (square).
 #' @param dist_fun      Distance function. Currently implemented:
@@ -282,6 +282,7 @@ sits_segment <- function(cube,
 #'         output_dir = tempdir(),
 #'         version = "slic-demo"
 #'     )
+#'     plot(seg_label)
 #' }
 #' @export
 sits_slic <- function(data = NULL,
@@ -340,7 +341,7 @@ sits_slic <- function(data = NULL,
             return(v_obj)
         }
         # Get valid centers
-        valid_centers <- slic[[2L]][, 1L] != 0L | slic[[2L]][, 2L] != 0L
+        valid_centers <- slic[[2L]][, 1L] != 0L & slic[[2L]][, 2L] != 0L
         # Bind valid centers with segments table
         v_obj <- cbind(
             v_obj, matrix(stats::na.omit(slic[[2L]][valid_centers, ]), ncol = 2L)
@@ -350,39 +351,45 @@ sits_slic <- function(data = NULL,
         # Get the extent of template raster
         v_ext <- .raster_bbox(v_temp)
         # Calculate pixel position by rows and cols
-        xres <- v_obj[["x"]] * .raster_xres(v_temp) + .raster_xres(v_temp) / 2L
-        yres <- v_obj[["y"]] * .raster_yres(v_temp) - .raster_yres(v_temp) / 2L
-        v_obj[["x"]] <- as.vector(v_ext)[[1L]] + xres
-        v_obj[["y"]] <- as.vector(v_ext)[[4L]] - yres
+        x_pos <- v_obj[["x"]] * .raster_xres(v_temp) + .raster_xres(v_temp) / 2L
+        y_pos <- v_obj[["y"]] * .raster_yres(v_temp) - .raster_yres(v_temp) / 2L
+        v_obj[["x"]] <- as.vector(v_ext)[[1L]] + x_pos
+        v_obj[["y"]] <- as.vector(v_ext)[[4L]] - y_pos
         # Get only polygons segments
         v_obj <- suppressWarnings(sf::st_collection_extract(v_obj, "POLYGON"))
         # Return the segment object
         v_obj
     }
 }
+
 #' @title Segment an image using SNIC
 #' @name sits_snic
 #'
 #' @author Rolf Simoes, \email{rolfsimoes@@gmail.com}
-#' @author Felipe Carvalho, \email{felipe.carvalho@@inpe.br}
+#' @author Gilberto Camara, \email{gilberto.camara@@inpe.br}
 #' @author Felipe Carlos, \email{efelipecarlos@@gmail.com}
+#' @author Felipe Carvalho, \email{felipe.carvalho@@inpe.br}
 #'
 #' @description
 #' Apply a segmentation on a data cube based on the \code{snic} package.
 #' This is an adaptation and extension to remote sensing data of the
-#' SNIC superpixels algorithm proposed by Achanta et al. (2017).
-#' See references for more details.
+#' SNIC superpixels algorithm proposed by Achanta and Süsstrunk (2017).
+#' See reference for more details.
 #'
-#' @param data        (unused here; kept for parity with sits_slic signature)
-#' @param step        Distance (in number of cells) between grid seeds.
-#' @param compactness SNIC compactness (>= 0). Larger → more spatial compactness.
-#' @param minarea     Minimal segment size (in cells) for polygon cleaning.
-#'                    (Kept for API parity; handled by raster-to-polygons dissolve.)
-#' @param verbose     Show progress (logical)?
+#' @param data          A matrix with time series.
+#' @param grid_seeding  Method for grid seeding (one of
+#'                      "rectangular", "diamond", "hexagonal",
+#'                      "random").
+#' @param spacing       Distance (in number of cells) between initial
+#'                      supercells' centers
+#' @param compactness   A compactness value. Larger values cause clusters to
+#'                      be more compact/even (square).
+#' @param padding       Distance (in pixels) from the image borders within
+#'                      which no seeds are placed.
 #'
-#' @return            Function closure consumable by sits::sits_segment()
-#'                    that returns an sf polygon layer with columns:
-#'                    supercells (label), x, y (centroid coords), geometry.
+#' @references
+#' "Superpixels and Polygons Using Simple Non-Iterative Clustering",
+#' R. Achanta and S. Süsstrunk, CVPR 2017.
 #'
 #' @examples
 #' if (sits_run_examples()) {
@@ -397,12 +404,13 @@ sits_slic <- function(data = NULL,
 #'     segments <- sits_segment(
 #'         cube = cube,
 #'         seg_fn = sits_snic(
-#'             step = 10,
-#'             compactness = 1
+#'             grid_seeding = "rectangular",
+#'             spacing = 10,
+#'             compactness = 0.5,
+#'             padding = 5
 #'         ),
 #'         output_dir = tempdir(),
-#'         multicores = 1L,
-#'         version = "slic-demo"
+#'         version = "snic-demo"
 #'     )
 #'     # create a classification model
 #'     rfor_model <- sits_train(samples_modis_ndvi, sits_rfor())
@@ -411,92 +419,89 @@ sits_slic <- function(data = NULL,
 #'         data = segments,
 #'         ml_model = rfor_model,
 #'         output_dir = tempdir(),
-#'         version = "slic-demo"
+#'         version = "snic-demo"
 #'     )
 #'     # label the probability segments
 #'     seg_label <- sits_label_classification(
 #'         cube = seg_probs,
 #'         output_dir = tempdir(),
-#'         version = "slic-demo"
+#'         version = "snic-demo"
 #'     )
+#'     plot(seg_label)
 #' }
-#'
 #' @export
 sits_snic <- function(data = NULL,
-                      step = 30L,
-                      compactness = 10.0,
-                      verbose = FALSE) {
-    # basic arg checks (keep behavior similar to sits_slic)
-    .check_set_caller("sits_snic")
+                      grid_seeding = "rectangular",
+                      spacing = 10,
+                      compactness = 0.5,
+                      padding = floor(spacing / 2)) {
+    # require slic package
     .check_require_packages("snic")
-    .check_int_parameter(step, min = 1L, max = 500L)
-    .check_num_parameter(compactness, min = 0.0, max = 1e6)
-    verbose <- .message_verbose(verbose)
+    # set caller for error msg
+    .check_set_caller("sits_snic")
+    # spacing is OK?
+    .check_int_parameter(spacing, min = 1L, max = 500L)
+    # compactness is OK?
+    .check_num_parameter(compactness, min = 0L, max = 1L)
+    # padding is OK?
+    .check_int_parameter(padding, min = 0L, max = 500L)
+    # grid seeding
+    .check_snic_grid(grid_seeding)
 
+    # calls SNIC for a matrix
     function(data, block, bbox) {
-        # Build a 1-band template raster matching the current block
+        # Create a template rast
         v_temp <- .raster_new_rast(
             nrows = block[["nrows"]], ncols = block[["ncols"]],
             xmin = bbox[["xmin"]], xmax = bbox[["xmax"]],
             ymin = bbox[["ymin"]], ymax = bbox[["ymax"]],
             nlayers = 1L, crs = bbox[["crs"]]
         )
-
-        # Dimensions and matrix form (rows = pixels, cols = bands/features)
-        height <- .raster_nrows(v_temp)
-        width <- .raster_ncols(v_temp)
-
-        # 'data' is expected to be a numeric matrix with nrow = width*height (row-major)
-        if (!is.matrix(data) || !is.numeric(data)) {
-            stop("`data` must be a numeric matrix with one row per pixel and columns as bands/features.")
-        }
-        if (nrow(data) != width * height) {
-            stop("nrow(data) must equal width * height for the current block.")
-        }
-
-        # Run SNIC: 1) create seeds 2) run snic
-
-        # snic arrays are R arrays (column-major stored)
-        dim(data) <- c(width, height, ncol(data))
+        # set dimensions for image
+        img_height <- block[["nrows"]]
+        img_width <- block[["ncols"]]
+        img_bands <- ncol(data)
+        # Adjust data
+        dim(data) <- c(img_width, img_height, img_bands)
         data <- aperm(data, c(2, 1, 3))
-        seeds <- snic::snic_hex_grid(
+        # generate seeds for classification
+        seeds <- snic::snic_grid(data,
+            type = grid_seeding,
             img = data,
-            spacing = step
+            spacing = spacing,
+            padding = padding
         )
-        seg_mat <- snic::snic(
-            img = data,
+        # use SNIC to produce a one-band segmented raster image
+        seg_img <- snic::snic(
+            x = data,
             seeds = seeds,
             compactness = compactness
         )
+        # permute dimensions of one-band raster image
+        seg_img <- aperm(seg_img, c(2, 1, 3))
+        dim(seg_img) <- c(img_width * img_height, 1)
 
-        # terra arrays are row-major stored
-        seg_mat <- aperm(seg_mat, c(2, 1, 3))
-        dim(seg_mat) <- c(width * height, 1L)
-
-        # Write labels to raster and set NA value if present
-        v_obj <- .raster_set_values(v_temp, seg_mat)
+        # extract segments for one-band raster image
+        # Set values and NA value in template raster
+        v_obj <- .raster_set_values(v_temp, seg_img)
         v_obj <- .raster_set_na(v_obj, -1L)
-
-        # Polygons (dissolve = TRUE merges touching same-label areas)
+        # Extract polygons raster and convert to sf object
         v_obj <- .raster_extract_polygons(v_obj, dissolve = TRUE)
         v_obj <- sf::st_as_sf(v_obj)
-
         if (nrow(v_obj) == 0L) {
             return(v_obj)
         }
-
-        # Add centers as x,y (use geometry centroids in CRS units)
-        # This keeps the same column contract as sits_slic, but via sf centroids.
-        ctr <- suppressWarnings(sf::st_centroid(v_obj$geometry))
-        ctr_xy <- sf::st_coordinates(ctr)
-        v_obj[["x"]] <- ctr_xy[, 1L]
-        v_obj[["y"]] <- ctr_xy[, 2L]
-
-        # Keep a stable schema (label column name + x,y + geometry)
-        names(v_obj)[names(v_obj) == "lyr.1"] <- "supercells"
-        v_obj <- v_obj[, c("supercells", "x", "y", "geometry")]
-
-        # 8) Return polygon segments
+        # Get valid centroids
+        centroids <- suppressWarnings(sf::st_centroid(v_obj))
+        # Extract centroid matrix from centroids
+        centroids_xy <- sf::st_coordinates(centroids)
+        # Bind valid centers with segments table
+        v_obj <- cbind(v_obj, centroids_xy)
+        # Rename columns
+        names(v_obj) <- c("supercells", "x", "y", "geometry")
+        # Get only polygons segments
+        v_obj <- suppressWarnings(sf::st_collection_extract(v_obj, "POLYGON"))
+        # Return the segment object
         v_obj
     }
 }

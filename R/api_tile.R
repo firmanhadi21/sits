@@ -199,23 +199,23 @@ NULL
 #' @param tile   A tile.
 #' @param labels A character vector with new labels
 #' @return vector of labels
-.tile_update_label <- function(tile, labels) {
+.tile_update_label <- function(tile, labels, multicores, memsize) {
     UseMethod(".tile_update_label", tile)
 }
 
 #' @export
-.tile_update_label.class_cube <- function(tile, labels) {
+.tile_update_label.class_cube <- function(tile, labels, multicores, memsize) {
     # Open classified raster
     tile_rast <- .raster_open_rast(.tile_path(tile))
     # Get frequency values
-    freq_tbl <- .raster_freq(tile_rast)
+    unique_vals <- .cube_unique_values(tile, multicores, memsize)
     # Get tile labels
     tile_labels <- .tile_labels(tile)
     if (is.null(names(tile_labels))) {
         names(tile_labels) <- seq_along(tile_labels)
     }
     # Get new labels values
-    tile_labels <- tile_labels[.as_chr(freq_tbl[["value"]])]
+    tile_labels <- tile_labels[.as_chr(unique_vals)]
     # Set new labels
     .tile_labels(tile) <- tile_labels
     # Return tile with updated labels
@@ -223,7 +223,7 @@ NULL
 }
 
 #' @export
-.tile_update_label.default <- function(tile, labels) {
+.tile_update_label.default <- function(tile, labels, multicores, memsize) {
     stop(.conf("messages", ".tile_update_label_default"))
 }
 
@@ -1393,24 +1393,55 @@ NULL
 }
 #' @export
 .tile_area_freq.class_cube <- function(tile) {
-    # Open first raster
-    rast <- .raster_open_rast(.tile_path(tile))
-    # Retrieve the frequency
-    freq <- tibble::as_tibble(.raster_freq(rast))
-    # get labels
-    labels <- .tile_labels(tile)
-    # pixel area
-    # convert the area to hectares
-    # assumption: spatial resolution unit is meters
-    area <- freq[["count"]] * .tile_xres(tile) * .tile_yres(tile) / 10000.0
-    # Include class names
-    freq <- dplyr::mutate(
-        freq,
-        area = area,
-        class = labels[as.character(freq[["value"]])]
+    # get tile crs
+    tile_crs <- sf::st_crs(.tile_crs(tile))
+    # get tile crs unit (metre or degree)
+    tile_crs_unit <- tile_crs$units_gdal
+    # validate if crs is equal area
+    tile_crs_equal_area <- .crs_is_equal_area(tile_crs)
+    # extract the file path
+    tile_file <- .tile_paths(tile)
+    # read the files with terra
+    rast <- .raster_open_rast(tile_file)
+    # get area by pixels
+    if (!tile_crs_equal_area && tile_crs_unit == "metre") {
+        # get a frequency of values
+        class_areas <- .raster_freq(rast) |>
+            dplyr::select(-.data[["layer"]])
+        # transform to km^2
+        cell_size <- .tile_xres(tile) * .tile_yres(tile)
+        class_areas[["area"]] <- (class_areas[["count"]] * cell_size) / 1000000L
+    } else {
+        # get pixels by class
+        class_count <- .raster_freq(rast)
+        # get area by class in km^2
+        class_areas <- .raster_area(rast = rast, unit = "km", byValue = TRUE)
+        # Merge area and pixel count
+        class_areas <- dplyr::full_join(class_count, class_areas, by = "value") |>
+            dplyr::select(-.data[["layer.x"]], -.data[["layer.y"]])
+    }
+    # change value to character
+    class_areas <- dplyr::mutate(
+        class_areas,
+        value = as.character(.data[["value"]])
     )
-    # Return frequencies
-    freq
+    # create a data.frame with the labels
+    tile_labels <- .tile_labels(tile)
+    df1 <- tibble::tibble(
+        value = names(tile_labels),
+        class = unname(tile_labels)
+    )
+    # join the labels with the areas
+    sum_areas <- dplyr::full_join(df1, class_areas, by = "value")
+    sum_areas <- dplyr::mutate(sum_areas,
+                               area = signif(.data[["area"]], 2L),
+                               .keep = "unused"
+    )
+    # replace na
+    sum_clean <- sum_areas |>
+        tidyr::replace_na(list(count = 0L, area = 0.0))
+
+    sum_clean
 }
 #' @export
 .tile_area_freq.class_vector_cube <- function(tile) {
