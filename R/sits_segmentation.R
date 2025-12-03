@@ -478,6 +478,7 @@ sits_snic <- function(data = NULL,
             compactness = compactness
         )
         # permute dimensions of one-band raster image
+        seg_img <- snic::snic_get_seg(seg_img)
         seg_img <- aperm(seg_img, c(2, 1, 3))
         dim(seg_img) <- c(img_width * img_height, 1)
 
