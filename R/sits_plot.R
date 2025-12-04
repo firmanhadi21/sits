@@ -1081,14 +1081,11 @@ plot.probs_cube <- function(x, ...,
 #'     # segment the image
 #'     segments <- sits_segment(
 #'         cube = cube,
-#'         seg_fn = sits_slic(
-#'             step = 5,
-#'             compactness = 1,
-#'             dist_fun = "euclidean",
-#'             avg_fun = "median",
-#'             iter = 20,
-#'             minarea = 10,
-#'             verbose = FALSE
+#'         seg_fn = sits_snic(
+#'             grid_seeding = "diamond",
+#'             spacing = 7,
+#'             compactness = 0.5,
+#'             padding = 0
 #'         ),
 #'         output_dir = tempdir()
 #'     )
@@ -1409,14 +1406,11 @@ plot.uncertainty_cube <- function(x, ...,
 #'     # segment the image
 #'     segments <- sits_segment(
 #'         cube = cube,
-#'         seg_fn = sits_slic(
-#'             step = 5,
-#'             compactness = 1,
-#'             dist_fun = "euclidean",
-#'             avg_fun = "median",
-#'             iter = 20,
-#'             minarea = 10,
-#'             verbose = FALSE
+#'         seg_fn = sits_snic(
+#'             grid_seeding = "hexagonal",
+#'             spacing = 7,
+#'             compactness = 0.6,
+#'             padding = 0
 #'         ),
 #'         output_dir = tempdir()
 #'     )
@@ -1878,8 +1872,10 @@ plot.som_evaluate_cluster <- function(x, y, ...,
     # Calculate dominant class by cluster
     dominant <- data |>
         dplyr::group_by(.data[["cluster"]], class) |>
-        dplyr::summarise(total =
-               sum(.data[["mixture_percentage"]]), .groups = "drop") |>
+        dplyr::summarise(
+            total =
+                sum(.data[["mixture_percentage"]]), .groups = "drop"
+        ) |>
         dplyr::group_by(.data[["cluster"]]) |>
         dplyr::slice_max(.data[["total"]], n = 1) |>
         dplyr::arrange(dplyr::desc(.data[["total"]])) |>
@@ -1890,10 +1886,13 @@ plot.som_evaluate_cluster <- function(x, y, ...,
     data_conv <- data |>
         # Show labels only for percentages greater than 3%
         # (for better visualization)
-        dplyr::mutate(label = ifelse(.data[["mixture_percentage"]] < 3, NA,
-                                     .data[["mixture_percentage"]]),
-                      class = as.factor(class),
-                      cluster = factor(.data[["cluster"]], levels = dominant))
+        dplyr::mutate(
+            label = ifelse(.data[["mixture_percentage"]] < 3, NA,
+                .data[["mixture_percentage"]]
+            ),
+            class = as.factor(class),
+            cluster = factor(.data[["cluster"]], levels = dominant)
+        )
 
     # Stacked bar graphs for confusion by cluster
     g <- ggplot2::ggplot(
@@ -1901,34 +1900,42 @@ plot.som_evaluate_cluster <- function(x, y, ...,
         ggplot2::aes(
             x = .data[["mixture_percentage"]],
             y = factor(.data[["cluster"]],
-                       levels = rev(levels(.data[["cluster"]]))),
-            fill = class)) +
+                levels = rev(levels(.data[["cluster"]]))
+            ),
+            fill = class
+        )
+    ) +
         ggplot2::geom_bar(
             stat = "identity",
             color = "white",
-            width = 0.9) +
+            width = 0.9
+        ) +
         ggplot2::geom_text(
             ggplot2::aes(
-                label = scales::percent(label/100, 1)),
+                label = scales::percent(label / 100, 1)
+            ),
             position = ggplot2::position_stack(vjust = 0.5),
             color = "black",
             size = 3.5,
             fontface = "bold",
-            check_overlap = TRUE) +
+            check_overlap = TRUE
+        ) +
         ggplot2::theme_classic() +
         ggplot2::theme(
-            axis.title.y         =  ggplot2::element_text(size = 11),
-            legend.title         =  ggplot2::element_text(size = 11),
-            legend.text          =  ggplot2::element_text(size = 9),
-            legend.key.size      =  ggplot2::unit(0.5, "cm"),
-            legend.spacing.y     =  ggplot2::unit(0.5, "cm"),
-            legend.position      = "right",
-            legend.justification = "center") +
+            axis.title.y = ggplot2::element_text(size = 11),
+            legend.title = ggplot2::element_text(size = 11),
+            legend.text = ggplot2::element_text(size = 9),
+            legend.key.size = ggplot2::unit(0.5, "cm"),
+            legend.spacing.y = ggplot2::unit(0.5, "cm"),
+            legend.position = "right",
+            legend.justification = "center"
+        ) +
         ggplot2::xlab("Percentage of mixture") +
-        ggplot2::ylab("Class")+
+        ggplot2::ylab("Class") +
         ggplot2::scale_fill_manual(
             values = colors,
-            name = "Class label") +
+            name = "Class label"
+        ) +
         ggplot2::ggtitle(title)
 
     return(g)

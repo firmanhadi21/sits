@@ -223,18 +223,21 @@ test_that("Segmentation of large files", {
     .check_cube_is_regular(modis_cube_local)
 
     # SLIC
-    segments <- sits_segment(
-        cube = modis_cube_local,
-        seg_fn = sits_slic(
-            step = 50,
-            iter = 10,
-            minarea = 50
+    testthat::expect_warning(
+        segments <- sits_segment(
+            cube = modis_cube_local,
+            seg_fn = sits_slic(
+                step = 50,
+                iter = 10,
+                minarea = 50
+            ),
+            output_dir = output_dir,
+            multicores = 4,
+            memsize = 16,
+            progress = FALSE,
+            version = "v2bands"
         ),
-        output_dir = output_dir,
-        multicores = 4,
-        memsize = 16,
-        progress = FALSE,
-        version = "v2bands"
+        "deprecated"
     )
     expect_s3_class(object = segments, class = "vector_cube")
     expect_true("vector_info" %in% colnames(segments))
@@ -396,14 +399,17 @@ test_that("Segmentation with Sentinel-2 and DEM combined", {
 
     # Segment the merged cube
     # SLIC
-    object <- sits_segment(
-        cube = cube_merged,
-        seg_fn = sits_slic(iter = 10),
-        multicores = 2,
-        memsize = 24,
-        progress = FALSE,
-        output_dir = dir_images,
-        version = "vt"
+    testthat::expect_warning(
+        object <- sits_segment(
+            cube = cube_merged,
+            seg_fn = sits_slic(iter = 10),
+            multicores = 2,
+            memsize = 24,
+            progress = FALSE,
+            output_dir = dir_images,
+            version = "vt"
+        ),
+        "deprecated"
     )
     testthat::expect_s3_class(object, "segs_cube")
     #

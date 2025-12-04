@@ -509,6 +509,7 @@ sits_select: "input should be a valid set of training samples or a non-classifie
 sits_select_default: "input should be a valid set of training samples or a non-classified data cube"
 sits_segment: "wrong input parameters - see example in documentation"
 sits_slic: "wrong input parameters - see example in documentation"
+sits_slic_deprec: "this function is deprecated and will be removed in future versions of sits."
 sits_snic: "wrong input parameters - see example in documentation"
 sits_smooth: "wrong input parameters - see example in documentation"
 sits_smooth_default: "input should be a probability cube"

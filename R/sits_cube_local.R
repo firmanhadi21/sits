@@ -202,13 +202,11 @@ sits_cube.local_cube <- function(source,
 #'     # segment the vector cube
 #'     segs_cube <- sits_segment(
 #'         cube = modis_cube,
-#'         seg_fn = sits_slic(
-#'             step = 10,
-#'             compactness = 1,
-#'             dist_fun = "euclidean",
-#'             avg_fun = "median",
-#'             iter = 30,
-#'             minarea = 10
+#'         seg_fn = sits_snic(
+#'             grid_seeding = "rectangular",
+#'             spacing = 15,
+#'             compactness = 0.4,
+#'             padding = 2
 #'         ),
 #'         output_dir = tempdir()
 #'     )
@@ -513,9 +511,9 @@ sits_cube.results_cube <- function(source,
 
     # check if cube is results cube
     .check_chr_contains(bands,
-                        contains = .conf("sits_results_bands"),
-                        discriminator = "one_of",
-                        msg = .conf("messages", "sits_cube_results_cube")
+        contains = .conf("sits_results_bands"),
+        discriminator = "one_of",
+        msg = .conf("messages", "sits_cube_results_cube")
     )
 
     # check if labels exist and are named
