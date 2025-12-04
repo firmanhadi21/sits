@@ -458,22 +458,27 @@ sits_snic <- function(data = NULL,
             nlayers = 1L, crs = bbox[["crs"]]
         )
         # set dimensions for image
-        img_height = block[["nrows"]]
-        img_width = block[["ncols"]]
-        img_bands = ncol(data)
+        img_height <- block[["nrows"]]
+        img_width <- block[["ncols"]]
+        img_bands <- ncol(data)
         # Adjust data
         dim(data) <- c(img_width, img_height, img_bands)
         data <- aperm(data, c(2, 1, 3))
         # generate seeds for classification
-        seeds <- .snic_grid_seeds(grid_seeding,
-                                  img = data,
-                                  spacing = spacing,
-                                  padding = padding)
+        seeds <- snic::snic_grid(data,
+            type = grid_seeding,
+            img = data,
+            spacing = spacing,
+            padding = padding
+        )
         # use SNIC to produce a one-band segmented raster image
-        seg_img <- snic::snic(img = data,
-                              seeds = seeds,
-                              compactness = compactness)
+        seg_img <- snic::snic(
+            x = data,
+            seeds = seeds,
+            compactness = compactness
+        )
         # permute dimensions of one-band raster image
+        seg_img <- snic::snic_get_seg(seg_img)
         seg_img <- aperm(seg_img, c(2, 1, 3))
         dim(seg_img) <- c(img_width * img_height, 1)
 
@@ -500,59 +505,4 @@ sits_snic <- function(data = NULL,
         # Return the segment object
         v_obj
     }
-}
-#' @title Create the seeds for SNIC algorithm
-#' @name .snic_grid_seeds
-#' @keywords internal
-#' @noRd
-#'
-#' @author Rolf Simoes, \email{rolfsimoes@@gmail.com}
-#' @author Gilberto Camara, \email{gilberto.camara@@inpe.br}
-#'
-#' @description
-#' Create a vector of seeds that are used by the SNIC algorithm.
-#'
-#' @param grid_seeding  Method for grid seeding (one of
-#'                      "rectangular", "diamond", "hexagonal",
-#'                      "random")
-#' @param img           3D Matrix to be segmented
-#' @param spacing       Distance (in number of cells) between initial
-#'                      supercells' centers
-#' @param padding       Distance (in pixels) from the image borders within
-#'                      which no seeds are placed.
-#'
-.snic_grid_seeds <- function(grid_seeding,
-                             img,
-                             spacing,
-                             padding){
-    class(grid_seeding) <- grid_seeding
-    UseMethod(".snic_grid_seeds", grid_seeding)
-}
-#' @export
-.snic_grid_seeds.rectangular <- function(grid_seeding = "rectangular",
-                                         img,
-                                         spacing,
-                                         padding) {
-    snic::snic_rect_grid(img, spacing, padding)
-}
-#' @export
-.snic_grid_seeds.diamond <- function(grid_seeding = "diamond",
-                                     img,
-                                     spacing,
-                                     padding) {
-    snic::snic_diamon_grid(img, spacing, padding)
-}
-#' @export
-.snic_grid_seeds.hexagonal <- function(grid_seeding = "hexagonal",
-                                       img,
-                                       spacing,
-                                       padding) {
-    snic::snic_hex_grid(img, spacing, padding)
-}
-#' @export
-.snic_grid_seeds.random <- function(grid_seeding = "random",
-                                    img,
-                                    spacing,
-                                    padding) {
-    snic::snic_random_grid(img, spacing, padding)
 }

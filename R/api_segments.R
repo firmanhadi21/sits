@@ -175,6 +175,10 @@
             values <- impute_fn(values)
         }
         # Return values
+        colnames(values) <- paste(
+            colnames(values), seq_len(ncol(values)),
+            sep = "_"
+        )
         as.data.frame(values)
     })
     # Compose final values
