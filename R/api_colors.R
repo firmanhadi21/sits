@@ -270,7 +270,7 @@
         writeLines("<Option type=\"Map\">", con)
         # convert color to RGB and write to XML
         hex_color <- color_table[i + 1, "color"]
-        rgb <- col2rgb(hex_color)
+        rgb <- grDevices::col2rgb(hex_color)
         # format RGBA value to be inserted in QML file
         color_val <- paste0(paste(as.character(rgb), collapse = ","),",255")
         qml_color <- paste0("value=", "\"",color_val,"\"")
