@@ -1407,7 +1407,7 @@ NULL
     if (!tile_crs_equal_area && tile_crs_unit == "metre") {
         # get a frequency of values
         class_areas <- .raster_freq(rast) |>
-            dplyr::select(-.data[["layer"]])
+            dplyr::select(-dplyr::all_of("layer"))
         # transform to km^2
         cell_size <- .tile_xres(tile) * .tile_yres(tile)
         class_areas[["area"]] <- (class_areas[["count"]] * cell_size) / 1000000L
@@ -1418,7 +1418,7 @@ NULL
         class_areas <- .raster_area(rast = rast, unit = "km", byValue = TRUE)
         # Merge area and pixel count
         class_areas <- dplyr::full_join(class_count, class_areas, by = "value") |>
-            dplyr::select(-.data[["layer.x"]], -.data[["layer.y"]])
+            dplyr::select(-dplyr::all_of(c("layer.x", "layer.y")))
     }
     # change value to character
     class_areas <- dplyr::mutate(
