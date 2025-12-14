@@ -1120,6 +1120,7 @@
         merge_files <- purrr::map_chr(block_files, `[[`, i)
         # Expand paths for block_files
         merge_files <- .file_path_expand(merge_files)
+        merge_files <- .file_path_normalize(merge_files)
         # check if block_files length is at least one
         .check_file(x = merge_files, extensions = "tif")
         # Get number of layers
