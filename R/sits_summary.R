@@ -236,8 +236,9 @@ summary.derived_cube <- function(object, ..., sample_size = 10000L) {
         # read the files with terra
         r <- .raster_open_rast(tile_file)
         # get the a sample of the values
-        values <- r |>
-            .raster_sample(size = sample_size, na.rm = TRUE)
+        values <- .raster_sample(rast = r, size = sample_size, na.rm = TRUE)
+        # standardize names to avoid issues with different raster layer names
+        colnames(values) <- as.character(1:ncol(values))
         # scale the values
         band_conf <- .tile_band_conf(tile, band)
         band_scale <- .scale(band_conf)
@@ -374,6 +375,8 @@ summary.variance_cube <- function(object, ...,
                 size = sample_size_tile,
                 na.rm = TRUE
             )
+            # Standardize names to avoid issues with different raster layer names
+            colnames(values) <- as.character(1:ncol(values))
             # Apply bands configuration to it
             band_conf <- .tile_band_conf(tile, tile_band)
             # Scale and offset
