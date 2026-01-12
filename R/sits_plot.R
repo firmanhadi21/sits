@@ -2156,7 +2156,7 @@ plot.som_clean_samples <- function(x, ...) {
 #'
 #' @param  x             Object of class "xgb_model".
 #' @param  ...           Further specifications for \link{plot}.
-#' @param  trees         Vector of trees to be plotted
+#' @param  tree          Integer index of the tree to be plotted (starting in 0).
 #' @param  width         Width of the output window
 #' @param  height        Height of the output window
 #' @return               A plot
@@ -2174,7 +2174,7 @@ plot.som_clean_samples <- function(x, ...) {
 #' @export
 #'
 plot.xgb_model <- function(x, ...,
-                           trees = 0L:4L,
+                           tree = 0L,
                            width = 1500L,
                            height = 1900L) {
     # verifies if DiagrammeR package is installed
@@ -2183,8 +2183,12 @@ plot.xgb_model <- function(x, ...,
     # retrieve the XGB object from the environment
     xgb <- .ml_model(x)
     # plot the trees
-    gr <- xgboost::xgb.plot.tree(model = xgb, trees = trees, render = FALSE)
-    p <- DiagrammeR::render_graph(gr, width = width, height = height)
+    p <- xgboost::xgb.plot.tree(
+        model = xgb,
+        tree_idx = tree + 1,
+        plot_width = width,
+        plot_height = height
+    )
     return(p)
 }
 #' @title  Plot Torch (deep learning) model
