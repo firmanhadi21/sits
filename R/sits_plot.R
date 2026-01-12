@@ -2156,9 +2156,7 @@ plot.som_clean_samples <- function(x, ...) {
 #'
 #' @param  x             Object of class "xgb_model".
 #' @param  ...           Further specifications for \link{plot}.
-#' @param  trees         Vector of trees to be plotted
-#' @param  width         Width of the output window
-#' @param  height        Height of the output window
+#' @param  tree_idx      Number of tree to be plotted
 #' @return               A plot
 #'
 #'
@@ -2174,17 +2172,12 @@ plot.som_clean_samples <- function(x, ...) {
 #' @export
 #'
 plot.xgb_model <- function(x, ...,
-                           trees = 0L:4L,
-                           width = 1500L,
-                           height = 1900L) {
-    # verifies if DiagrammeR package is installed
-    .check_require_packages("DiagrammeR")
+                           tree_idx = 1) {
     .check_is_sits_model(x)
     # retrieve the XGB object from the environment
     xgb <- .ml_model(x)
     # plot the trees
-    gr <- xgboost::xgb.plot.tree(model = xgb, trees = trees, render = FALSE)
-    p <- DiagrammeR::render_graph(gr, width = width, height = height)
+    p <- xgboost::xgb.plot.tree(model = xgb, tree_idx = tree_idx)
     return(p)
 }
 #' @title  Plot Torch (deep learning) model
@@ -2265,7 +2258,32 @@ plot.torch_model <- function(x, y, ...) {
         ) +
         ggplot2::labs()
 }
-
+#' @title  Message for models whose plots are not available
+#' @name   plot.sits_model
+#' @author Gilberto Camara, \email{gilberto.camara@@inpe.br}
+#'
+#' @description Plots trees in an extreme gradient boosting model.
+#'
+#'
+#' @param  x             Object of class "sits_model".
+#' @param  ...           Further specifications for \link{plot}.
+#' @return               Called for side effects
+#'
+#'
+#' @examples
+#' if (sits_run_examples()) {
+#'     # Retrieve the samples for Mato Grosso
+#'     # train an extreme gradient boosting
+#'     svm_model <- sits_train(samples_modis_ndvi,
+#'         ml_method = sits_svm()
+#'     )
+#'     plot(svm_model)
+#' }
+#' @export
+#'
+plot.sits_model <- function(x, ...){
+    .message_warnings_function()
+}
 #' @title Make a kernel density plot of samples distances.
 #'
 #' @name   plot.geo_distances
