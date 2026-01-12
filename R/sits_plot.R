@@ -2176,7 +2176,7 @@ plot.xgb_model <- function(x, ...,
     .check_is_sits_model(x)
     # retrieve the XGB object from the environment
     xgb <- .ml_model(x)
-    # plot the trees
+    # plot the tree
     p <- xgboost::xgb.plot.tree(model = xgb, tree_idx = tree_idx)
     return(p)
 }
