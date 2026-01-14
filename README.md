@@ -213,8 +213,7 @@ Conceptual view of data cubes (source: authors)
 After defining an irregular ARD image collection from a cloud service
 using `sits_cube()`, users should run `sits_regularize()` to build a
 regular data cube. This function uses the [gdalcubes R
-package](https://github.com/appelmar/gdalcubes), described in [Appel and
-Pebesma, 2019](https://www.mdpi.com/2306-5729/4/3/92).
+package](https://github.com/appelmar/gdalcubes).
 
 ``` r
 gc_cube <- sits_regularize(

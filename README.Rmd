@@ -142,7 +142,7 @@ This cube is irregular. The timelines of tiles `"20LKP"` and `"20LLKP"` and the 
 knitr::include_graphics("man/figures/datacube_conception.jpg")
 ```
 
-After defining an irregular ARD image collection from a cloud service using `sits_cube()`, users should run `sits_regularize()` to build a regular data cube. This function uses the [gdalcubes R package](https://github.com/appelmar/gdalcubes), described in [Appel and Pebesma, 2019](https://www.mdpi.com/2306-5729/4/3/92). 
+After defining an irregular ARD image collection from a cloud service using `sits_cube()`, users should run `sits_regularize()` to build a regular data cube. This function uses the [gdalcubes R package](https://github.com/appelmar/gdalcubes). 
 
 
 ```{r, tidy = "styler", eval=FALSE, echo=TRUE}
