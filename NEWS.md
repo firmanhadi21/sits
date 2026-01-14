@@ -3,6 +3,10 @@
 # What's new in SITS version 1.5
 
 ### New features in SITS version 1.5.4
+* Fix bug in `sits_summary()` in obtaining the variance summary with multiple tiles
+* Add new plot type in `sits_accuracy()` function (`"confusion_matrix"`)
+* Add new `type` parameter in `sits_accuracy()` function for selecting plot type
+* Improve `plot.som_evaluate_cluster` function to include a `legend` parameter
 * Add new `sits_snic` segmentation function based on the [snic](https://cran.r-project.org/package=snic) package
 * Add `pkgdown` [documentation website](https://e-sensing.github.io/sits/) for the `sits` package
 * Add new imputation functions: `impute_mean()`, `impute_median()`, and `impute_mean_window()`
