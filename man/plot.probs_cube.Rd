@@ -31,7 +31,7 @@
 
 \item{labels}{Labels to plot.}
 
-\item{palette}{RColorBrewer palette}
+\item{palette}{RColorBrewer or "cols4all" palette}
 
 \item{rev}{Reverse order of colors in palette?}
 
@@ -48,8 +48,13 @@
 \value{
 A plot containing probabilities associated
                       to each class for each pixel.
-
- To define a \code{roi} use one of:
+}
+\description{
+plots a probability cube
+}
+\note{
+To see which color palettes are supported, please run cols4all::c4a_gui().
+To define a \code{roi} use one of:
      \itemize{
        \item{A path to a shapefile with polygons;}
        \item{A \code{sfc} or \code{sf} object from \code{sf} package;}
@@ -64,9 +69,6 @@ A plot containing probabilities associated
      in WGS84 requires the \code{crs} parameter to be specified.
      \code{sits_regularize()} function will crop the images
      that contain the region of interest().
-}
-\description{
-plots a probability cube
 }
 \examples{
 if (sits_run_examples()) {

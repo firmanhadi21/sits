@@ -9,12 +9,14 @@
 #' @param  labels          Output labels
 #' @param  reclassify_fn   Function to be applied for reclassification
 #' @param  block           Image block to be processed
+#' @param  multicores      Number of cores to run the function
+#' @param  memsize         Maximum overall memory (in GB) to run the function
 #' @param  output_dir      Directory where image will be save
 #' @param  version         Version of result.
 #' @param  progress        Show progress bar?
 #' @return reclassified tile
 .reclassify_tile <- function(tile, mask, band, labels, reclassify_fn, block,
-                             output_dir, version, progress) {
+                             multicores, memsize, output_dir, version, progress) {
     # Output files
     out_file <- .file_derived_name(
         tile = tile, band = band, version = version, output_dir = output_dir
@@ -31,7 +33,12 @@
             update_bbox = FALSE
         )
         # Update tile labels
-        class_tile <- .tile_update_label(class_tile, labels)
+        class_tile <- .tile_update_label(
+            tile = class_tile,
+            labels = labels,
+            multicores = multicores,
+            memsize = memsize
+        )
         return(class_tile)
     }
     # Create chunks as jobs
@@ -129,7 +136,12 @@
         update_bbox = FALSE
     )
     # Update tile labels
-    class_tile <- .tile_update_label(class_tile, labels)
+    class_tile <- .tile_update_label(
+        tile = class_tile,
+        labels = labels,
+        multicores = multicores,
+        memsize = memsize
+    )
     # Return class tile
     class_tile
 }
@@ -141,8 +153,10 @@
 #' @param  rules           Rules to be applied
 #' @param  labels_cube     Labels of input cube
 #' @param  labels_mask     Labels of reclassification mask
+#' @param  exclude_mask_na Set NA to output when an NA is found in mask?
 #' @return function to be applied for reclassification
-.reclassify_fn_expr <- function(rules, labels_cube, labels_mask) {
+.reclassify_fn_expr <- function(rules, labels_cube, labels_mask,
+                                exclude_mask_na) {
     .check_set_caller(".reclassify_fn_expr")
     # Check if rules are named
     .check_that(all(.has_name(rules)))
@@ -152,6 +166,103 @@
         seq_along(labels_rule)
     labels <- c(labels_cube, labels_rule)
     labels_code <- .as_int(names(labels))
+    names(labels_code) <- unname(labels)
+
+    label_as_int <- function(label, lut) {
+        valid_label <- label %in% names(lut)
+        if (!all(valid_label)) {
+            warning(
+                sprintf(
+                    .conf("messages", ".reclassify_label_as_int"),
+                    paste0(label[!valid_label], collapse = ", ")
+                ),
+                call. = FALSE
+            )
+            label <- label[valid_label]
+            if (!.has(label)) {
+                stop(.conf("messages", ".reclassify_label_invalid"))
+            }
+        }
+        unname(lut[label])
+    }
+
+    # Internal function to convert label expressions into integer expressions
+    rule_as_int <- function(rule) {
+        luts <- list(cube = labels_cube, mask = labels_mask)
+        luts <- lapply(luts, function(x) {
+            lut <- as.integer(names(x))
+            names(lut) <- unname(x)
+            lut
+        })
+
+        env <- list(
+            `(` = function(x) {
+                if (!is.call(x)) {
+                    return(x)
+                }
+                as.call(list(as.symbol("("), x))
+            },
+            `!` = function(x) {
+                as.call(list(as.symbol("!"), x))
+            },
+            `|` = function(e1, e2) {
+                as.call(list(as.symbol("|"), e1, e2))
+            },
+            `&` = function(e1, e2) {
+                as.call(list(as.symbol("&"), e1, e2))
+            },
+            `==` = function(e1, e2) {
+                if (is.character(e1) && is.symbol(e2)) {
+                    e1 <- label_as_int(e1, luts[[as.character(e2)]])
+                } else if (is.character(e2) && is.symbol(e1)) {
+                    e2 <- label_as_int(e2, luts[[as.character(e1)]])
+                } else {
+                    stop(.conf("messages", ".reclassify_rule_as_int_eq_op"))
+                }
+                as.call(list(as.symbol("=="), e1, e2))
+            },
+            `!=` = function(e1, e2) {
+                if (is.character(e1) && is.symbol(e2)) {
+                    e1 <- label_as_int(e1, luts[[as.character(e2)]])
+                } else if (is.character(e2) && is.symbol(e1)) {
+                    e2 <- label_as_int(e2, luts[[as.character(e1)]])
+                } else {
+                    stop(.conf("messages", ".reclassify_rule_as_int_neq_op"))
+                }
+                as.call(list(as.symbol("!="), e1, e2))
+            },
+            `%in%` = function(x, table) {
+                if (!is.symbol(x)) {
+                    stop(.conf("messages", ".reclassify_rule_as_int_in_op_lhs"))
+                }
+                if (!is.character(table)) {
+                    stop(.conf("messages", ".reclassify_rule_as_int_in_op_rhs"))
+                }
+                table <- label_as_int(table, luts[[as.character(x)]])
+                as.call(list(as.symbol("%in%"), x, table))
+            },
+            `c` = function(...) {
+                x <- c(...)
+                if (!is.character(x)) {
+                    stop(.conf("messages", ".reclassify_rule_as_int_c_fn"))
+                }
+                x
+            },
+            `is.na` = function(x) {
+                as.call(list(as.symbol("is.na"), x))
+            }
+        )
+
+        # Define namespaces from luts
+        ns <- lapply(names(luts), as.symbol)
+        names(ns) <- names(luts)
+        env <- c(env, ns)
+
+        eval(rule, envir = env, enclos = emptyenv())
+    }
+
+    # Convert labels to its respective integer values
+    rules <- lapply(rules, rule_as_int)
 
     # Define reclassify function
     reclassify_fn <- function(values, mask_values) {
@@ -161,17 +272,12 @@
         }
         # Used to check values (below)
         input_pixels <- nrow(values)
-        # Convert to character vector
-        values <- as.character(values)
-        mask_values <- as.character(mask_values)
         # New evaluation environment
-        env <- list2env(list(
+        env <- list(
             # Read values and convert to character
-            cube = unname(labels_cube[values]),
-            mask = unname(labels_mask[mask_values])
-        ))
-        # Get values as character
-        values <- env[["cube"]]
+            cube = values,
+            mask = mask_values
+        )
         # Evaluate each expression
         for (label in names(rules)) {
             # Get expression
@@ -182,20 +288,18 @@
             if (!is.logical(result)) {
                 stop(.conf("messages", ".reclassify_fn_result"))
             }
-            values[result] <- label
+            values[result] <- labels_code[[label]]
         }
-        # Get values as numeric
-        values <- matrix(
-            data = labels_code[match(values, labels)],
-            nrow = input_pixels
-        )
         # Mask NA values
-        values[is.na(env[["mask"]])] <- NA
+        if (exclude_mask_na) {
+            values[is.na(mask_values)] <- NA
+        }
         # Are the results consistent with the data input?
         .check_processed_values(values, input_pixels)
         # Return values
         values
     }
+
     # Return closure
     reclassify_fn
 }

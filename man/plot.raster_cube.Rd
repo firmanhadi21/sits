@@ -41,8 +41,7 @@
 \item{dates}{Dates to be plotted}
 
 \item{roi}{Spatial extent to plot in WGS 84 - named vector
-with either (lon_min, lon_max, lat_min, lat_max) or
-(xmin, xmax, ymin, ymax)}
+(see notes)}
 
 \item{palette}{An RColorBrewer palette}
 
@@ -73,6 +72,19 @@ Use \code{scale} parameter for general output control.
       multi-temporal RGB image for a single band (useful in the case of
       SAR data). For RGB bands with multi-dates, multiple plots will be
       produced.
+
+To see which color palettes are supported, please run cols4all::c4a_gui().
+
+To define a \code{roi} use one of:
+     \itemize{
+       \item{A path to a shapefile with polygons;}
+       \item{A \code{sfc} or \code{sf} object from \code{sf} package;}
+       \item{A \code{SpatExtent} object from \code{terra} package;}
+       \item{A named \code{vector} (\code{"lon_min"},
+            \code{"lat_min"}, \code{"lon_max"}, \code{"lat_max"}) in WGS84;}
+       \item{A named \code{vector} (\code{"xmin"}, \code{"xmax"},
+             \code{"ymin"}, \code{"ymax"}) with XY coordinates.}
+}
 
 If the user does not provide band names for b/w or RGB plots,
 and also does not provide dates,

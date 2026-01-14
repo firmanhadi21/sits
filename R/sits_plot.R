@@ -326,8 +326,7 @@ plot.predicted <- function(x, y, ...,
 #' @param  tile           Tile to be plotted.
 #' @param  dates          Dates to be plotted
 #' @param  roi            Spatial extent to plot in WGS 84 - named vector
-#'                        with either (lon_min, lon_max, lat_min, lat_max) or
-#'                        (xmin, xmax, ymin, ymax)
+#'                        (see notes)
 #' @param  palette        An RColorBrewer palette
 #' @param  rev            Reverse the color order in the palette?
 #' @param  scale          Scale to plot map (0.4 to 1.0)
@@ -347,6 +346,19 @@ plot.predicted <- function(x, y, ...,
 #'       multi-temporal RGB image for a single band (useful in the case of
 #'       SAR data). For RGB bands with multi-dates, multiple plots will be
 #'       produced.
+#'
+#' To see which color palettes are supported, please run cols4all::c4a_gui().
+#'
+#' To define a \code{roi} use one of:
+#'      \itemize{
+#'        \item{A path to a shapefile with polygons;}
+#'        \item{A \code{sfc} or \code{sf} object from \code{sf} package;}
+#'        \item{A \code{SpatExtent} object from \code{terra} package;}
+#'        \item{A named \code{vector} (\code{"lon_min"},
+#'             \code{"lat_min"}, \code{"lon_max"}, \code{"lat_max"}) in WGS84;}
+#'        \item{A named \code{vector} (\code{"xmin"}, \code{"xmax"},
+#'              \code{"ymin"}, \code{"ymax"}) with XY coordinates.}
+#' }
 #'
 #' If the user does not provide band names for b/w or RGB plots,
 #' and also does not provide dates,
@@ -474,9 +486,6 @@ plot.raster_cube <- function(x, ...,
             band = bands[[1L]],
             date = dates[[1L]],
             roi = roi,
-            sf_seg = NULL,
-            seg_color = NULL,
-            line_width = NULL,
             palette = palette,
             rev = rev,
             scale = scale,
@@ -492,9 +501,6 @@ plot.raster_cube <- function(x, ...,
             bands = bands,
             date = dates[[1L]],
             roi = roi,
-            sf_seg = NULL,
-            seg_color = NULL,
-            line_width = NULL,
             scale = scale,
             max_cog_size = max_cog_size,
             first_quantile = first_quantile,
@@ -517,10 +523,8 @@ plot.raster_cube <- function(x, ...,
 #' @param  blue            Band for blue color.
 #' @param  tile            Tile to be plotted.
 #' @param  dates           Dates to be plotted.
-#' @param  roi             Spatial extent to plot in WGS 84 - named vector
-#'                         with either (lon_min, lon_max, lat_min, lat_max) or
-#'                         (xmin, xmax, ymin, ymax)
-#' @param  palette         An RColorBrewer palette
+#' @param  roi             Spatial extent to plot (see notes)
+#' @param  palette         An RColorBrewer or "cols4all" palette
 #' @param  rev             Reverse the color order in the palette?
 #' @param  scale           Scale to plot map (0.4 to 1.0)
 #' @param  first_quantile  First quantile for stretching images
@@ -540,7 +544,10 @@ plot.raster_cube <- function(x, ...,
 #'       SAR data). For RGB bands with multi-dates, multiple plots will be
 #'       produced.
 #'
-#' @note The following optional parameters are available to allow for detailed
+#' To see which color palettes are supported, please run cols4all::c4a_gui().
+#'
+#' @note
+#'       The following optional parameters are available to allow for detailed
 #'       control over the plot output:
 #' \itemize{
 #' \item \code{graticules_labels_size}: size of coord labels (default = 0.7)
@@ -548,6 +555,17 @@ plot.raster_cube <- function(x, ...,
 #' \item \code{legend_text_size}: relative size of legend text (default = 0.7)
 #' \item \code{legend_bg_color}: color of legend background (default = "white")
 #' \item \code{legend_bg_alpha}: legend opacity (default = 0.3)
+#' }
+#'
+#' To define a \code{roi} use one of:
+#'      \itemize{
+#'        \item{A path to a shapefile with polygons;}
+#'        \item{A \code{sfc} or \code{sf} object from \code{sf} package;}
+#'        \item{A \code{SpatExtent} object from \code{terra} package;}
+#'        \item{A named \code{vector} (\code{"lon_min"},
+#'             \code{"lat_min"}, \code{"lon_max"}, \code{"lat_max"}) in WGS84;}
+#'        \item{A named \code{vector} (\code{"xmin"}, \code{"xmax"},
+#'              \code{"ymin"}, \code{"ymax"}) with XY coordinates.}
 #' }
 #'
 #' @examples
@@ -613,10 +631,8 @@ plot.sar_cube <- function(x, ...,
 #' @param  ...           Further specifications for \link{plot}.
 #' @param  band          Band for plotting grey images.
 #' @param  tile          Tile to be plotted.
-#' @param  roi           Spatial extent to plot in WGS 84 - named vector
-#'                       with either (lon_min, lon_max, lat_min, lat_max) or
-#'                       (xmin, xmax, ymin, ymax)
-#' @param  palette       An RColorBrewer palette
+#' @param  roi           Spatial extent to plot in WGS 84 - (see notes)
+#' @param  palette       An RColorBrewer or "cols4all" palette
 #' @param  rev           Reverse the color order in the palette?
 #' @param  scale         Scale to plot map (0.4 to 1.0)
 #' @param  max_cog_size  Maximum size of COG overviews (lines or columns)
@@ -625,9 +641,10 @@ plot.sar_cube <- function(x, ...,
 #'                       or a B/W image on a color scale
 #'
 #' @note
-#'       Use \code{scale} parameter for general output control.
 #'
-#' @note The following optional parameters are available to allow for detailed
+#' To see which color palettes are supported, please run cols4all::c4a_gui().
+#' Use \code{scale} parameter for general output control.
+#' The following optional parameters are available to allow for detailed
 #'       control over the plot output:
 #' \itemize{
 #' \item \code{graticules_labels_size}: size of coord labels (default = 0.7)
@@ -636,6 +653,17 @@ plot.sar_cube <- function(x, ...,
 #' \item \code{legend_bg_color}: color of legend background (default = "white")
 #' \item \code{legend_bg_alpha}: legend opacity (default = 0.3)
 #' }
+#' To define a \code{roi} use one of:
+#'      \itemize{
+#'        \item{A path to a shapefile with polygons;}
+#'        \item{A \code{sfc} or \code{sf} object from \code{sf} package;}
+#'        \item{A \code{SpatExtent} object from \code{terra} package;}
+#'        \item{A named \code{vector} (\code{"lon_min"},
+#'             \code{"lat_min"}, \code{"lon_max"}, \code{"lat_max"}) in WGS84;}
+#'        \item{A named \code{vector} (\code{"xmin"}, \code{"xmax"},
+#'              \code{"ymin"}, \code{"ymax"}) with XY coordinates.}
+#' }
+#'
 #'
 #' @examples
 #' if (sits_run_examples()) {
@@ -742,9 +770,10 @@ plot.dem_cube <- function(x, ...,
 #' @param  blue          Band for blue color.
 #' @param  tile          Tile to be plotted.
 #' @param  dates         Dates to be plotted.
+#' @param  roi           Spatial extent to plot in WGS 84 - (see notes)
 #' @param  seg_color     Color to show the segment boundaries
 #' @param  line_width    Line width to plot the segments boundary (in pixels)
-#' @param  palette       An RColorBrewer palette
+#' @param  palette       An RColorBrewer or "cols4all" palette
 #' @param  rev           Reverse the color order in the palette?
 #' @param  scale         Scale to plot map (0.4 to 1.5)
 #' @param  first_quantile First quantile for stretching images
@@ -755,7 +784,9 @@ plot.dem_cube <- function(x, ...,
 #'                       or a B/W image on a color
 #'                       scale using the palette
 #'
-#' @note The following optional parameters are available to allow for detailed
+#' @note
+#' To see which color palettes are supported, please run cols4all::c4a_gui().
+#' The following optional parameters are available to allow for detailed
 #'       control over the plot output:
 #' \itemize{
 #' \item \code{graticules_labels_size}: size of coord labels (default = 0.7)
@@ -763,6 +794,17 @@ plot.dem_cube <- function(x, ...,
 #' \item \code{legend_text_size}: relative size of legend text (default = 0.7)
 #' \item \code{legend_bg_color}: color of legend background (default = "white")
 #' \item \code{legend_bg_alpha}: legend opacity (default = 0.3)
+#' }
+#'
+#' To define a \code{roi} use one of:
+#'      \itemize{
+#'        \item{A path to a shapefile with polygons;}
+#'        \item{A \code{sfc} or \code{sf} object from \code{sf} package;}
+#'        \item{A \code{SpatExtent} object from \code{terra} package;}
+#'        \item{A named \code{vector} (\code{"lon_min"},
+#'             \code{"lat_min"}, \code{"lon_max"}, \code{"lat_max"}) in WGS84;}
+#'        \item{A named \code{vector} (\code{"xmin"}, \code{"xmax"},
+#'              \code{"ymin"}, \code{"ymax"}) with XY coordinates.}
 #' }
 #' @examples
 #' if (sits_run_examples()) {
@@ -791,8 +833,9 @@ plot.vector_cube <- function(x, ...,
                              blue = NULL,
                              tile = x[["tile"]][[1L]],
                              dates = NULL,
-                             seg_color = "yellow",
-                             line_width = 0.3,
+                             roi = NULL,
+                             seg_color = "black",
+                             line_width = 0.2,
                              palette = "RdYlGn",
                              rev = FALSE,
                              scale = 1.0,
@@ -842,17 +885,20 @@ plot.vector_cube <- function(x, ...,
     }
     # retrieve the segments for this tile
     sf_seg <- .segments_read_vec(tile)
+    if (.has(roi)) {
+        sf_bbox <- sf::st_bbox(.roi_as_sf(roi))
+        sf_seg <- sf::st_crop(sf_seg, sf_bbox)
+        gc()
+    }
+
     # BW or color?
     if (length(bands) == 1L) {
         # plot the band as false color
-        .plot_false_color(
+        p <- .plot_false_color(
             tile = tile,
             band = bands[[1L]],
             date = dates[[1L]],
-            roi = NULL,
-            sf_seg = sf_seg,
-            seg_color = seg_color,
-            line_width = line_width,
+            roi = roi,
             palette = palette,
             rev = rev,
             scale = scale,
@@ -863,14 +909,11 @@ plot.vector_cube <- function(x, ...,
         )
     } else {
         # plot RGB
-        .plot_rgb(
+        p <- .plot_rgb(
             tile = tile,
             bands = bands,
             date = dates[[1L]],
-            roi = NULL,
-            sf_seg = sf_seg,
-            seg_color = seg_color,
-            line_width = line_width,
+            roi = roi,
             first_quantile = first_quantile,
             last_quantile = last_quantile,
             scale = scale,
@@ -878,6 +921,12 @@ plot.vector_cube <- function(x, ...,
             tmap_params = tmap_params
         )
     }
+    p <- p + .tmap_segments(
+        sf_seg = sf_seg,
+        seg_color = seg_color,
+        line_width = line_width
+    )
+    p
 }
 #' @title  Plot probability cubes
 #' @name   plot.probs_cube
@@ -890,7 +939,7 @@ plot.vector_cube <- function(x, ...,
 #' @param roi            Spatial extent to plot in WGS 84 - named vector
 #'                       (see notes below)
 #' @param labels         Labels to plot.
-#' @param palette        RColorBrewer palette
+#' @param palette        RColorBrewer or "cols4all" palette
 #' @param rev            Reverse order of colors in palette?
 #' @param quantile       Minimum quantile to plot
 #' @param scale          Scale to plot map (0.4 to 1.0)
@@ -899,8 +948,9 @@ plot.vector_cube <- function(x, ...,
 #' @param legend_title    Title of legend (default = "probs")
 #' @return               A plot containing probabilities associated
 #'                       to each class for each pixel.
-#'
-#'  To define a \code{roi} use one of:
+#' @note
+#' To see which color palettes are supported, please run cols4all::c4a_gui().
+#' To define a \code{roi} use one of:
 #'      \itemize{
 #'        \item{A path to a shapefile with polygons;}
 #'        \item{A \code{sfc} or \code{sf} object from \code{sf} package;}
@@ -995,14 +1045,27 @@ plot.probs_cube <- function(x, ...,
 #' @param  x             Object of class "probs_vector_cube".
 #' @param  ...           Further specifications for \link{plot}.
 #' @param tile           Tile to be plotted.
+#' @param roi            Region of interest (see notes below).
 #' @param labels         Labels to plot
-#' @param palette        RColorBrewer palette
+#' @param palette        RColorBrewer or "cols4all" palette
 #' @param rev            Reverse order of colors in palette?
 #' @param scale          Scale to plot map (0.4 to 1.0)
 #' @param legend_position Where to place the legend (default = "outside")
 #' @return               A plot containing probabilities associated
 #'                       to each class for each pixel.
 #'
+#' @note
+#' To see which color palettes are supported, please run cols4all::c4a_gui().
+#' To define a \code{roi} use one of:
+#'      \itemize{
+#'        \item{A path to a shapefile with polygons;}
+#'        \item{A \code{sfc} or \code{sf} object from \code{sf} package;}
+#'        \item{A \code{SpatExtent} object from \code{terra} package;}
+#'        \item{A named \code{vector} (\code{"lon_min"},
+#'             \code{"lat_min"}, \code{"lon_max"}, \code{"lat_max"}) in WGS84;}
+#'        \item{A named \code{vector} (\code{"xmin"}, \code{"xmax"},
+#'              \code{"ymin"}, \code{"ymax"}) with XY coordinates.}
+#' }
 #'
 #' @examples
 #' if (sits_run_examples()) {
@@ -1018,14 +1081,11 @@ plot.probs_cube <- function(x, ...,
 #'     # segment the image
 #'     segments <- sits_segment(
 #'         cube = cube,
-#'         seg_fn = sits_slic(
-#'             step = 5,
-#'             compactness = 1,
-#'             dist_fun = "euclidean",
-#'             avg_fun = "median",
-#'             iter = 20,
-#'             minarea = 10,
-#'             verbose = FALSE
+#'         seg_fn = sits_snic(
+#'             grid_seeding = "diamond",
+#'             spacing = 7,
+#'             compactness = 0.5,
+#'             padding = 0
 #'         ),
 #'         output_dir = tempdir()
 #'     )
@@ -1043,6 +1103,7 @@ plot.probs_cube <- function(x, ...,
 #'
 plot.probs_vector_cube <- function(x, ...,
                                    tile = x[["tile"]][[1L]],
+                                   roi = NULL,
                                    labels = NULL,
                                    palette = "YlGn",
                                    rev = FALSE,
@@ -1070,6 +1131,7 @@ plot.probs_vector_cube <- function(x, ...,
     # plot the probs vector cube
     .plot_probs_vector(
         tile = tile,
+        roi = roi,
         labels_plot = labels,
         palette = palette,
         rev = rev,
@@ -1086,11 +1148,9 @@ plot.probs_vector_cube <- function(x, ...,
 #' @param  x             Object of class "variance_cube".
 #' @param  ...           Further specifications for \link{plot}.
 #' @param tile           Tile to be plotted.
-#' @param  roi           Spatial extent to plot in WGS 84 - named vector
-#'                        with either (lon_min, lon_max, lat_min, lat_max) or
-#'                        (xmin, xmax, ymin, ymax)
+#' @param  roi           Spatial extent to plot (see notes)
 #' @param labels         Labels to plot.
-#' @param palette        RColorBrewer palette
+#' @param palette        RColorBrewer or "cols4all" palette
 #' @param rev            Reverse order of colors in palette?
 #' @param type           Type of plot ("map" or "hist")
 #' @param scale          Scale to plot map (0.4 to 1.0)
@@ -1102,7 +1162,18 @@ plot.probs_vector_cube <- function(x, ...,
 #' @return                A plot containing local variances associated to the
 #'                        logit probability for each pixel and each class.
 #'
-#'
+#' @note
+#' To see which color palettes are supported, please run cols4all::c4a_gui().
+#' To define a \code{roi} use one of:
+#'      \itemize{
+#'        \item{A path to a shapefile with polygons;}
+#'        \item{A \code{sfc} or \code{sf} object from \code{sf} package;}
+#'        \item{A \code{SpatExtent} object from \code{terra} package;}
+#'        \item{A named \code{vector} (\code{"lon_min"},
+#'             \code{"lat_min"}, \code{"lon_max"}, \code{"lat_max"}) in WGS84;}
+#'        \item{A named \code{vector} (\code{"xmin"}, \code{"xmax"},
+#'              \code{"ymin"}, \code{"ymax"}) with XY coordinates.}
+#' }
 #' @examples
 #' if (sits_run_examples()) {
 #'     # create a random forest model
@@ -1188,10 +1259,8 @@ plot.variance_cube <- function(x, ...,
 #' @param  x              Object of class "probs_image".
 #' @param  ...            Further specifications for \link{plot}.
 #' @param  tile           Tiles to be plotted.
-#' @param  roi            Spatial extent to plot in WGS 84 - named vector
-#'                        with either (lon_min, lon_max, lat_min, lat_max) or
-#'                        (xmin, xmax, ymin, ymax)
-#' @param  palette        An RColorBrewer palette
+#' @param  roi            Spatial extent to plot (see note)
+#' @param  palette        An RColorBrewer or "cols4all" palette
 #' @param  rev            Reverse the color order in the palette?
 #' @param  scale          Scale to plot map (0.4 to 1.0)
 #' @param  first_quantile First quantile for stretching images
@@ -1202,7 +1271,9 @@ plot.variance_cube <- function(x, ...,
 #' @return               A plot object produced showing the uncertainty
 #'                       associated to each classified pixel.
 #'
-#' @note The following optional parameters are available to allow for detailed
+#' @note
+#' To see which color palettes are supported, please run cols4all::c4a_gui().
+#' The following optional parameters are available to allow for detailed
 #'       control over the plot output:
 #' \itemize{
 #' \item \code{graticules_labels_size}: size of coord labels (default = 0.7)
@@ -1211,6 +1282,17 @@ plot.variance_cube <- function(x, ...,
 #' \item \code{legend_bg_color}: color of legend background (default = "white")
 #' \item \code{legend_bg_alpha}: legend opacity (default = 0.5)
 #' }
+#' #' To define a \code{roi} use one of:
+#'      \itemize{
+#'        \item{A path to a shapefile with polygons;}
+#'        \item{A \code{sfc} or \code{sf} object from \code{sf} package;}
+#'        \item{A \code{SpatExtent} object from \code{terra} package;}
+#'        \item{A named \code{vector} (\code{"lon_min"},
+#'             \code{"lat_min"}, \code{"lon_max"}, \code{"lat_max"}) in WGS84;}
+#'        \item{A named \code{vector} (\code{"xmin"}, \code{"xmax"},
+#'              \code{"ymin"}, \code{"ymax"}) with XY coordinates.}
+#' }
+#'
 #' @examples
 #' if (sits_run_examples()) {
 #'     # create a random forest model
@@ -1273,9 +1355,6 @@ plot.uncertainty_cube <- function(x, ...,
         band = band,
         date = NULL,
         roi = roi,
-        sf_seg = NULL,
-        seg_color = NULL,
-        line_width = NULL,
         palette = palette,
         rev = rev,
         scale = scale,
@@ -1293,14 +1372,26 @@ plot.uncertainty_cube <- function(x, ...,
 #' @param  x             Object of class "probs_vector_cube".
 #' @param  ...           Further specifications for \link{plot}.
 #' @param tile           Tile to be plotted.
-#' @param palette        RColorBrewer palette
+#' @param roi            Region of interest (see note)
+#' @param palette        RColorBrewer or "cols4all" palette
 #' @param rev            Reverse order of colors in palette?
 #' @param scale          Scale to plot map (0.4 to 1.0)
 #' @param legend_position Where to place the legend (default = "inside")
 #' @return               A plot containing probabilities associated
 #'                       to each class for each pixel.
 #'
-#'
+#' @note
+#' To see which color palettes are supported, please run cols4all::c4a_gui().
+#' To define a \code{roi} use one of:
+#'      \itemize{
+#'        \item{A path to a shapefile with polygons;}
+#'        \item{A \code{sfc} or \code{sf} object from \code{sf} package;}
+#'        \item{A \code{SpatExtent} object from \code{terra} package;}
+#'        \item{A named \code{vector} (\code{"lon_min"},
+#'             \code{"lat_min"}, \code{"lon_max"}, \code{"lat_max"}) in WGS84;}
+#'        \item{A named \code{vector} (\code{"xmin"}, \code{"xmax"},
+#'              \code{"ymin"}, \code{"ymax"}) with XY coordinates.}
+#' }
 #' @examples
 #' if (sits_run_examples()) {
 #'     # create a random forest model
@@ -1315,14 +1406,11 @@ plot.uncertainty_cube <- function(x, ...,
 #'     # segment the image
 #'     segments <- sits_segment(
 #'         cube = cube,
-#'         seg_fn = sits_slic(
-#'             step = 5,
-#'             compactness = 1,
-#'             dist_fun = "euclidean",
-#'             avg_fun = "median",
-#'             iter = 20,
-#'             minarea = 10,
-#'             verbose = FALSE
+#'         seg_fn = sits_snic(
+#'             grid_seeding = "hexagonal",
+#'             spacing = 7,
+#'             compactness = 0.6,
+#'             padding = 0
 #'         ),
 #'         output_dir = tempdir()
 #'     )
@@ -1346,6 +1434,7 @@ plot.uncertainty_cube <- function(x, ...,
 #'
 plot.uncertainty_vector_cube <- function(x, ...,
                                          tile = x[["tile"]][[1L]],
+                                         roi = NULL,
                                          palette = "RdYlGn",
                                          rev = TRUE,
                                          scale = 1.0,
@@ -1360,15 +1449,16 @@ plot.uncertainty_vector_cube <- function(x, ...,
     .check_num_parameter(scale, min = 0.2)
     # check legend position
     .check_legend_position(legend_position)
-    # check for color_palette parameter (sits 1.4.1)
-    dots <- list(...)
     # get tmap params from dots
+    dots <- list(...)
     tmap_params <- .tmap_params_set(dots, legend_position)
     # filter the cube
     tile <- .cube_filter_tiles(cube = x, tiles = tile)
+
     # plot the probs vector cube
     .plot_uncertainty_vector(
         tile = tile,
+        roi = roi,
         palette = palette,
         rev = rev,
         scale = scale,
@@ -1384,11 +1474,9 @@ plot.uncertainty_vector_cube <- function(x, ...,
 #' @param  y               Ignored.
 #' @param  ...             Further specifications for \link{plot}.
 #' @param  tile            Tile to be plotted.
-#' @param  roi             Spatial extent to plot in WGS 84 - named vector
-#'                         with either (lon_min, lon_max, lat_min, lat_max) or
-#'                         (xmin, xmax, ymin, ymax)
+#' @param  roi             Spatial extent to plot (see note)
 #' @param  legend          Named vector that associates labels to colors.
-#' @param  palette         Alternative RColorBrewer palette
+#' @param  palette         A RColorBrewer or "cols4all" palette
 #' @param  scale           Relative scale (0.4 to 1.0) of plot text
 #' @param  max_cog_size    Maximum size of COG overviews (lines or columns)
 #' @param legend_position  Where to place the legend (default = "outside")
@@ -1396,7 +1484,9 @@ plot.uncertainty_vector_cube <- function(x, ...,
 #' @return                 A  color map, where each pixel has the color
 #'                         associated to a label, as defined by the legend
 #'                         parameter.
-#' @note The following optional parameters are available to allow for detailed
+#' @note
+#' To see which color palettes are supported, please run cols4all::c4a_gui().
+#' The following optional parameters are available to allow for detailed
 #'       control over the plot output:
 #' \itemize{
 #' \item \code{graticules_labels_size}: size of coord labels (default = 0.8)
@@ -1405,6 +1495,17 @@ plot.uncertainty_vector_cube <- function(x, ...,
 #' \item \code{legend_bg_color}: color of legend background (default = "white")
 #' \item \code{legend_bg_alpha}: legend opacity (default = 0.5)
 #' }
+#' #' To define a \code{roi} use one of:
+#'      \itemize{
+#'        \item{A path to a shapefile with polygons;}
+#'        \item{A \code{sfc} or \code{sf} object from \code{sf} package;}
+#'        \item{A \code{SpatExtent} object from \code{terra} package;}
+#'        \item{A named \code{vector} (\code{"lon_min"},
+#'             \code{"lat_min"}, \code{"lon_max"}, \code{"lat_max"}) in WGS84;}
+#'        \item{A named \code{vector} (\code{"xmin"}, \code{"xmax"},
+#'              \code{"ymin"}, \code{"ymax"}) with XY coordinates.}
+#' }
+#'
 #' @examples
 #' if (sits_run_examples()) {
 #'     # create a random forest model
@@ -1487,10 +1588,11 @@ plot.class_cube <- function(x, y, ...,
 #' @param  x               Object of class "segments".
 #' @param  ...             Further specifications for \link{plot}.
 #' @param  tile            Tile to be plotted.
+#' @param  roi             Region of interest (see note)
 #' @param  legend          Named vector that associates labels to colors.
 #' @param  seg_color       Segment color.
 #' @param  line_width      Segment line width.
-#' @param  palette         Alternative RColorBrewer palette
+#' @param  palette         A RColorBrewer or "cols4all" palette
 #' @param  scale           Scale to plot map (0.4 to 1.0)
 #' @param  legend_position Where to place the legend (default = "outside")
 #'
@@ -1498,7 +1600,20 @@ plot.class_cube <- function(x, y, ...,
 #'                       or a B/W image on a color
 #'                       scale using the chosen palette
 #'
-#' @note To see which color palettes are supported, please run
+#' @note
+#' To see which color palettes are supported, please run cols4all::c4a_gui().
+#'
+#'
+#' To define a \code{roi} use one of:
+#'      \itemize{
+#'        \item{A path to a shapefile with polygons;}
+#'        \item{A \code{sfc} or \code{sf} object from \code{sf} package;}
+#'        \item{A \code{SpatExtent} object from \code{terra} package;}
+#'        \item{A named \code{vector} (\code{"lon_min"},
+#'             \code{"lat_min"}, \code{"lon_max"}, \code{"lat_max"}) in WGS84;}
+#'        \item{A named \code{vector} (\code{"xmin"}, \code{"xmax"},
+#'              \code{"ymin"}, \code{"ymax"}) with XY coordinates.}
+#' }
 #' @examples
 #' if (sits_run_examples()) {
 #'     data_dir <- system.file("extdata/raster/mod13q1", package = "sits")
@@ -1535,6 +1650,7 @@ plot.class_cube <- function(x, y, ...,
 plot.class_vector_cube <- function(x, ...,
                                    tile = x[["tile"]][[1L]],
                                    legend = NULL,
+                                   roi = NULL,
                                    seg_color = "black",
                                    line_width = 0.5,
                                    palette = "Spectral",
@@ -1569,9 +1685,20 @@ plot.class_vector_cube <- function(x, ...,
     )
     # filter the tile to be processed
     tile <- .cube_filter_tiles(cube = x, tiles = tile)
+    # retrieve segments
+    sf_seg <- .segments_read_vec(tile)
+    # crop using ROI
+    if (.has(roi)) {
+        sf_bbox <- sf::st_bbox(.roi_as_sf(roi))
+        sf_seg <- sf::st_crop(sf_seg, sf_bbox)
+    }
+    # join sf geometries
+    sf_seg <- sf_seg |>
+        dplyr::group_by(.data[["class"]]) |>
+        dplyr::summarise()
     # plot class vector cube
     .plot_class_vector(
-        tile = tile,
+        sf_seg = sf_seg,
         legend = legend,
         palette = palette,
         scale = scale,
@@ -1618,20 +1745,28 @@ plot.rfor_model <- function(x, y, ...) {
 #' @name   plot.sits_accuracy
 #' @author Gilberto Camara \email{gilberto.camara@@inpe.br}
 #'
-#' @description Plot a bar graph with informations about the confusion matrix
+#' @description Plot a table with informations about the confusion matrix or the accuracy metrics
 #'
 #' @param  x            Object of class "plot.sits_accuracy".
 #' @param  y            Ignored.
 #' @param  ...          Further specifications for \link{plot}.
-#' @param  title        Title of plot.
-#' @return              A plot object produced by the ggplot2 package
+#' @param  type         Type of plot (either "confusion_matrix"
+#'                      or "metrics")
+#' @return              Called for side  package
 #'                      containing color bars showing the confusion
 #'                      between classes.
 #' @examples
 #' if (sits_run_examples()) {
-#'     # show accuracy for a set of samples
-#'     train_data <- sits_sample(samples_modis_ndvi, frac = 0.5)
-#'     test_data <- sits_sample(samples_modis_ndvi, frac = 0.5)
+#'     # select a set of samples
+#'     samples <- samples_modis_ndvi
+#'     # index samples to split train/test
+#'     samples[["sample_idx"]] <- 1:nrow(samples)
+#'     # select training data
+#'     train_data <- sits_sample(samples, frac = 0.8)
+#'     # select test data
+#'     sel <- !(samples[["sample_idx"]]
+#'              %in% train_data[["sample_idx"]])
+#'     test_data <- samples[sel, ]
 #'     # compute a random forest model
 #'     rfor_model <- sits_train(train_data, sits_rfor())
 #'     # classify training points
@@ -1644,53 +1779,158 @@ plot.rfor_model <- function(x, y, ...) {
 #'     plot(acc)
 #' }
 #' @export
-#'
-plot.sits_accuracy <- function(x, y, ..., title = "Confusion matrix") {
+plot.sits_accuracy <- function(x, y, ..., type = "confusion_matrix") {
     stopifnot(missing(y))
-    data <- x
-    if (!inherits(data, "sits_accuracy")) {
+    if (!inherits(x, "sits_accuracy")) {
         message(.conf("messages", ".plot_sits_accuracy"))
         return(invisible(NULL))
     }
+    data <- x
+    if (type == "metrics") {
+        # Extract metrics by class
+        by_class <- data$byClass
+        # remove "Class:  " from rownames
+        rownames(by_class) <- stringr::str_replace(rownames(by_class),
+                                                   "Class: ", "")
+        # Convert to data frame
+        by_class_long <- data.frame(
+            Class = rownames(by_class),
+            by_class
+        )
 
-    # configure plot colors
-    # get labels from cluster table
-    labels <- colnames(x[["table"]])
-    colors <- .colors_get(
-        labels = labels,
-        legend = NULL,
-        palette = "Set3",
-        rev = TRUE
-    )
+        # Convert to tidy long format
+        by_class_long_tidy <- by_class_long |>
+            tidyr::pivot_longer(
+                cols = -Class,
+                names_to = "Metric",
+                values_to = "Value"
+            )
 
-    data <- tibble::as_tibble(t(prop.table(x[["table"]], margin = 2L)))
+        # Important metrics for visualization
+        important_metrics <- c(
+            "Precision", "Recall", "F1"
+        )
 
-    colnames(data) <- c("pred", "class", "conf_per")
+        by_class_filtered <- by_class_long_tidy |>
+            dplyr::filter(.data[["Metric"]] %in% important_metrics)
 
-    p <- ggplot2::ggplot() +
-        ggplot2::geom_bar(
-            ggplot2::aes(
-                y = .data[["conf_per"]],
-                x = .data[["pred"]],
-                fill = class
-            ),
-            data = data,
-            stat = "identity",
-            position = ggplot2::position_dodge()
-        ) +
-        ggplot2::theme_minimal() +
-        ggplot2::theme(
-            axis.text.x =
-                ggplot2::element_text(angle = 60.0, hjust = 1L)
-        ) +
-        ggplot2::labs(x = "Class", y = "Agreement with reference") +
-        ggplot2::scale_fill_manual(name = "Class", values = colors) +
-        ggplot2::ggtitle(title)
+        # Rename metrics for presentation
+        metric_names <- c(
+            "Precision" = "User Acc",
+            "Recall" = "Prod Acc",
+            "F1" = "F1-Score"
+        )
 
-    graphics::plot(p)
-    invisible(p)
+        by_class_filtered$Metric <- metric_names[by_class_filtered$Metric]
+
+        # Create heatmap of metrics by class
+        p <- ggplot2::ggplot(by_class_filtered, ggplot2::aes(
+            x = Metric, y = Class,
+            fill = Value
+        )) +
+            ggplot2::geom_tile(color = "white", linewidth = 1) +
+            ggplot2::scale_fill_gradient2(
+                low = "#d32f2f", mid = "#fff9c4",
+                high = "#388e3c", midpoint = 0.5,
+                name = "Value",
+                limits = c(0, 1),
+                breaks = seq(0, 1, 0.2),
+                labels = paste0(seq(0, 1, 0.2) * 100, "%")
+            ) +
+            ggplot2::geom_text(ggplot2::aes(label = round(Value, 2)),
+                               size = 3.8,
+                               fontface = "bold", color = "black"
+            ) +
+            ggplot2::labs(
+                title = paste("Metrics by Class")
+            ) +
+            ggplot2::theme_minimal(base_size = 14) +
+            ggplot2::theme(
+                plot.title = ggplot2::element_text(
+                    hjust = 0.5, size = 16,
+                    face = "bold",
+                    margin = ggplot2::margin(b = 15)
+                ),
+                axis.text.x = ggplot2::element_text(
+                    angle = 45, hjust = 1,
+                    size = 11, face = "bold"
+                ),
+                axis.text.y = ggplot2::element_text(
+                    size = 11, face = "bold"),
+                axis.title = ggplot2::element_text(
+                    size = 13, face = "bold",
+                    margin = ggplot2::margin(t = 10)
+                ),
+                legend.title = ggplot2::element_text(size = 12, face = "bold"),
+                legend.text  = ggplot2::element_text(size = 11),
+                panel.grid   = ggplot2::element_blank(),
+                plot.margin  = ggplot2::margin(15, 15, 15, 15)
+            )
+        graphics::plot(p)
+    }
+    else {
+        # Extract confusion matrix
+        cm_mat <- as.matrix(data$table)
+
+        # Transform to data frame for ggplot
+        cm_long <- as.data.frame(as.table(cm_mat))
+
+        # Order Prediction factor levels
+        cm_long$Prediction <- factor(cm_long$Prediction,
+                                     levels = unique(cm_long$Prediction)
+        )
+
+        # Order Reference factor levels
+        cm_long$Reference <- factor(cm_long$Reference,
+                                    levels = unique(cm_long$Reference)
+        )
+
+        # Create visualization with ggplot
+        p <- ggplot2::ggplot(cm_long, ggplot2::aes(
+            x = Reference, y = Prediction,
+            fill = Freq
+        )) +
+            ggplot2::geom_tile(color = "white", linewidth = 1.2) +
+            ggplot2::geom_text(ggplot2::aes(label = Freq),
+                               color = "black",
+                               linewidth = 4.2, fontface = "bold"
+            ) +
+            ggplot2::scale_fill_gradient(
+                low = "#f1f3f4", high = "#1976d2",
+                name = "Cases", trans = "sqrt"
+            ) +
+            ggplot2::scale_y_discrete(limits = rev(levels(cm_long$Prediction))) +
+            ggplot2::theme_minimal(base_size = 14) +
+            ggplot2::theme(
+                plot.title = ggplot2::element_text(
+                    hjust = 0.5, size = 16, face = "bold",
+                    margin = ggplot2::margin(b = 20)
+                ),
+                axis.text.x = ggplot2::element_text(
+                    angle = 45, hjust = 1, size = 11,
+                    face = "bold"
+                ),
+                axis.text.y = ggplot2::element_text(
+                    size = 11, face = "bold"),
+                axis.title = ggplot2::element_text(
+                    size = 13, face = "bold",
+                    margin = ggplot2::margin(t = 10)
+                ),
+                legend.title = ggplot2::element_text(
+                    size = 12, face = "bold"),
+                legend.text = ggplot2::element_text(size = 11),
+                panel.grid = ggplot2::element_blank(),
+                plot.margin = ggplot2::margin(20, 20, 20, 20)
+            ) +
+            ggplot2::labs(
+                title = "Confusion Matrix",
+                x = "Reference",
+                y = "Predicted"
+            )
+        graphics::plot(p)
+    }
+    p
 }
-
 #'
 #' @title  Plot confusion between clusters
 #' @name   plot.som_evaluate_cluster
@@ -1702,6 +1942,7 @@ plot.sits_accuracy <- function(x, y, ..., title = "Confusion matrix") {
 #' @param  x            Object of class "plot.som_evaluate_cluster".
 #' @param  y            Ignored.
 #' @param  ...          Further specifications for \link{plot}.
+#' @param  legend       Legend to use for plotting
 #' @param  name_cluster Choose the cluster to plot.
 #' @param  title        Title of plot.
 #' @return              A plot object produced by the ggplot2 package
@@ -1718,6 +1959,7 @@ plot.sits_accuracy <- function(x, y, ..., title = "Confusion matrix") {
 #' }
 #' @export
 plot.som_evaluate_cluster <- function(x, y, ...,
+                                      legend = NULL,
                                       name_cluster = NULL,
                                       title = "Confusion by cluster") {
     stopifnot(missing(y))
@@ -1736,7 +1978,7 @@ plot.som_evaluate_cluster <- function(x, y, ...,
     labels <- unique(data[["class"]])
     colors <- .colors_get(
         labels = labels,
-        legend = NULL,
+        legend = legend,
         palette = "Spectral",
         rev = TRUE
     )
@@ -1745,8 +1987,10 @@ plot.som_evaluate_cluster <- function(x, y, ...,
     # Calculate dominant class by cluster
     dominant <- data |>
         dplyr::group_by(.data[["cluster"]], class) |>
-        dplyr::summarise(total =
-               sum(.data[["mixture_percentage"]]), .groups = "drop") |>
+        dplyr::summarise(
+            total =
+                sum(.data[["mixture_percentage"]]), .groups = "drop"
+        ) |>
         dplyr::group_by(.data[["cluster"]]) |>
         dplyr::slice_max(.data[["total"]], n = 1) |>
         dplyr::arrange(dplyr::desc(.data[["total"]])) |>
@@ -1757,10 +2001,13 @@ plot.som_evaluate_cluster <- function(x, y, ...,
     data_conv <- data |>
         # Show labels only for percentages greater than 3%
         # (for better visualization)
-        dplyr::mutate(label = ifelse(.data[["mixture_percentage"]] < 3, NA,
-                                     .data[["mixture_percentage"]]),
-                      class = as.factor(class),
-                      cluster = factor(.data[["cluster"]], levels = dominant))
+        dplyr::mutate(
+            label = ifelse(.data[["mixture_percentage"]] < 3, NA,
+                .data[["mixture_percentage"]]
+            ),
+            class = as.factor(class),
+            cluster = factor(.data[["cluster"]], levels = dominant)
+        )
 
     # Stacked bar graphs for confusion by cluster
     g <- ggplot2::ggplot(
@@ -1768,34 +2015,42 @@ plot.som_evaluate_cluster <- function(x, y, ...,
         ggplot2::aes(
             x = .data[["mixture_percentage"]],
             y = factor(.data[["cluster"]],
-                       levels = rev(levels(.data[["cluster"]]))),
-            fill = class)) +
+                levels = rev(levels(.data[["cluster"]]))
+            ),
+            fill = class
+        )
+    ) +
         ggplot2::geom_bar(
             stat = "identity",
             color = "white",
-            width = 0.9) +
+            width = 0.9
+        ) +
         ggplot2::geom_text(
             ggplot2::aes(
-                label = scales::percent(label/100, 1)),
+                label = scales::percent(label / 100, 1)
+            ),
             position = ggplot2::position_stack(vjust = 0.5),
             color = "black",
             size = 3.5,
             fontface = "bold",
-            check_overlap = TRUE) +
+            check_overlap = TRUE
+        ) +
         ggplot2::theme_classic() +
         ggplot2::theme(
-            axis.title.y         =  ggplot2::element_text(size = 11),
-            legend.title         =  ggplot2::element_text(size = 11),
-            legend.text          =  ggplot2::element_text(size = 9),
-            legend.key.size      =  ggplot2::unit(0.5, "cm"),
-            legend.spacing.y     =  ggplot2::unit(0.5, "cm"),
-            legend.position      = "right",
-            legend.justification = "center") +
+            axis.title.y = ggplot2::element_text(size = 11),
+            legend.title = ggplot2::element_text(size = 11),
+            legend.text = ggplot2::element_text(size = 9),
+            legend.key.size = ggplot2::unit(0.5, "cm"),
+            legend.spacing.y = ggplot2::unit(0.5, "cm"),
+            legend.position = "right",
+            legend.justification = "center"
+        ) +
         ggplot2::xlab("Percentage of mixture") +
-        ggplot2::ylab("Class")+
+        ggplot2::ylab("Class") +
         ggplot2::scale_fill_manual(
             values = colors,
-            name = "Class label") +
+            name = "Class label"
+        ) +
         ggplot2::ggtitle(title)
 
     return(g)
@@ -2016,9 +2271,7 @@ plot.som_clean_samples <- function(x, ...) {
 #'
 #' @param  x             Object of class "xgb_model".
 #' @param  ...           Further specifications for \link{plot}.
-#' @param  trees         Vector of trees to be plotted
-#' @param  width         Width of the output window
-#' @param  height        Height of the output window
+#' @param  tree_idx      Number of tree to be plotted
 #' @return               A plot
 #'
 #'
@@ -2034,17 +2287,12 @@ plot.som_clean_samples <- function(x, ...) {
 #' @export
 #'
 plot.xgb_model <- function(x, ...,
-                           trees = 0L:4L,
-                           width = 1500L,
-                           height = 1900L) {
-    # verifies if DiagrammeR package is installed
-    .check_require_packages("DiagrammeR")
+                           tree_idx = 1) {
     .check_is_sits_model(x)
     # retrieve the XGB object from the environment
     xgb <- .ml_model(x)
-    # plot the trees
-    gr <- xgboost::xgb.plot.tree(model = xgb, trees = trees, render = FALSE)
-    p <- DiagrammeR::render_graph(gr, width = width, height = height)
+    # plot the tree
+    p <- xgboost::xgb.plot.tree(model = xgb, tree_idx = tree_idx)
     return(p)
 }
 #' @title  Plot Torch (deep learning) model
@@ -2125,7 +2373,32 @@ plot.torch_model <- function(x, y, ...) {
         ) +
         ggplot2::labs()
 }
-
+#' @title  Message for models whose plots are not available
+#' @name   plot.sits_model
+#' @author Gilberto Camara, \email{gilberto.camara@@inpe.br}
+#'
+#' @description Plots trees in an extreme gradient boosting model.
+#'
+#'
+#' @param  x             Object of class "sits_model".
+#' @param  ...           Further specifications for \link{plot}.
+#' @return               Called for side effects
+#'
+#'
+#' @examples
+#' if (sits_run_examples()) {
+#'     # Retrieve the samples for Mato Grosso
+#'     # train an extreme gradient boosting
+#'     svm_model <- sits_train(samples_modis_ndvi,
+#'         ml_method = sits_svm()
+#'     )
+#'     plot(svm_model)
+#' }
+#' @export
+#'
+plot.sits_model <- function(x, ...){
+    .message_warnings_function()
+}
 #' @title Make a kernel density plot of samples distances.
 #'
 #' @name   plot.geo_distances

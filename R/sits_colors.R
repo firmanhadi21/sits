@@ -216,9 +216,13 @@ sits_colors_reset <- function() {
 #' @export
 #'
 sits_colors_qgis <- function(cube, file) {
-    .check_set_caller("sits_colors_qgis")
-    # check if cube is a class cube
-    .check_is_class_cube(cube)
+    UseMethod("sits_colors_qgis", cube)
+
+}
+#' @rdname sits_colors_qgis
+#' @export
+sits_colors_qgis.class_cube <- function(cube, file) {
+    .check_set_caller("sits_colors_qgis_raster")
     # check if the file name is valid
     .check_file(file, file_exists = FALSE)
     # retrieve the labels of the cube
@@ -238,4 +242,26 @@ sits_colors_qgis <- function(cube, file) {
     color_table[["index"]] <- names(labels)
     # create a QGIS XML file
     .colors_qml(color_table, file)
+}
+#' @rdname sits_colors_qgis
+#' @export
+sits_colors_qgis.class_vector_cube <- function(cube, file){
+    # check if the file name is valid
+    .check_file(file, file_exists = FALSE)
+    # retrieve the labels of the cube
+    labels <- .cube_labels(cube)
+    # select the colors for the labels of the cube
+    color_table <- .conf_colors()
+    # check all labels are in the color table
+    .check_chr_within(labels, color_table[["name"]])
+    # filter the color table
+    color_table <- color_table |>
+        dplyr::filter(.data[["name"]] %in% labels)
+    # order the colors to match the order of the labels
+    color_table <- color_table[
+        match(labels, color_table[["name"]]),
+    ]
+    # create a QGIS-readable GPL file
+    .colors_vector_qml(color_table, file)
+    invisible(TRUE)
 }

@@ -40,6 +40,16 @@
         warning(full_msg)
     }
 }
+#' @title Warning when function is not avaliable
+#' @name .message_warnings_function
+#' @noRd
+#' @returns Called for side effects
+.message_warnings_function <- function(){
+    warning(.conf("messages", ".function_not_available"))
+}
+
+#'
+#'
 #' @title Warning when cube has no CLOUD band
 #' @name .message_warnings_regularize_cloud
 #' @noRd
@@ -74,6 +84,15 @@
         warning(.conf("messages", "sits_timeline_raster_cube"),
             call. = FALSE
         )
+    }
+}
+#' @title Warning when converting a slow area calculation will be performed
+#' @name .message_warnings_slow_area_calculation
+#' @noRd
+#' @returns Called for side effects
+.message_warnings_slow_area_calculation <- function() {
+    if (.message_warnings()) {
+        warning(.conf("messages", "summary_class_cube_slow_area"), call. = FALSE)
     }
 }
 #' @title Test if progress bar should be shown

@@ -10,9 +10,6 @@
 #' @param  roi            Spatial extent to plot in WGS 84 - named vector
 #'                        with either (lon_min, lon_max, lat_min, lat_max) or
 #'                        (xmin, xmax, ymin, ymax)
-#' @param  sf_seg         Segments (sf object)
-#' @param  seg_color      Color to use for segment borders
-#' @param  line_width     Line width to plot the segments boundary
 #' @param  palette        A sequential RColorBrewer palette
 #' @param  rev            Reverse the color palette?
 #' @param  scale          Scale to plot map (0.4 to 1.0)
@@ -25,9 +22,6 @@
                               band,
                               date,
                               roi,
-                              sf_seg,
-                              seg_color,
-                              line_width,
                               palette,
                               rev,
                               scale,
@@ -39,7 +33,6 @@
     .check_palette(palette)
     # check rev
     .check_lgl_parameter(rev)
-
     # crop using ROI
     if (.has(roi)) {
         tile <- tile |>
@@ -92,13 +85,11 @@
 
     # set title
     title <- stringr::str_flatten(c(band, as.character(date)), collapse = " ")
+    # call tmap to plot
     .tmap_false_color(
         rast = rast,
         band = band,
         title = title,
-        sf_seg = sf_seg,
-        seg_color = seg_color,
-        line_width = line_width,
         palette = palette,
         rev = rev,
         scale = scale,
@@ -171,10 +162,7 @@
         max_value = max_value,
         first_quantile = first_quantile,
         last_quantile = last_quantile,
-        tmap_params = tmap_params,
-        sf_seg = NULL,
-        seg_color = NULL,
-        line_width = NULL
+        tmap_params = tmap_params
     )
 }
 #' @title  Plot a RGB image
@@ -185,9 +173,6 @@
 #' @param  tile          Tile to be plotted
 #' @param  bands         Bands to be plotted (R, G, B)
 #' @param  date          Date to be plotted
-#' @param  sf_seg        Segments (sf object)
-#' @param  seg_color     Color to use for segment borders
-#' @param  line_width    Line width to plot the segments boundary
 #' @param  scale         Scale to plot map (0.4 to 1.0)
 #' @param  max_cog_size  Maximum size of COG overviews (lines or columns)
 #' @param  first_quantile First quantile for stretching images
@@ -199,9 +184,6 @@
                       bands,
                       date,
                       roi,
-                      sf_seg,
-                      seg_color,
-                      line_width,
                       scale,
                       max_cog_size,
                       first_quantile,
@@ -237,7 +219,7 @@
     title <- stringr::str_flatten(c(bands, as.character(date)), collapse = " ")
 
     # plot RGB using tmap
-    .tmap_rgb_color(
+    p <- .tmap_rgb_color(
         red_file = red_file,
         green_file = green_file,
         blue_file = blue_file,
@@ -246,11 +228,9 @@
         max_value = max_value,
         first_quantile = first_quantile,
         last_quantile = last_quantile,
-        tmap_params = tmap_params,
-        sf_seg = sf_seg,
-        seg_color = seg_color,
-        line_width = line_width
+        tmap_params = tmap_params
     )
+    p
 }
 #' @title  Plot a classified image
 #' @name   .plot_class_image

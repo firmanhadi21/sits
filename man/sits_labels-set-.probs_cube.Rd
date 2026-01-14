@@ -2,17 +2,17 @@
 % Please edit documentation in R/sits_labels.R
 \name{sits_labels<-.probs_cube}
 \alias{sits_labels<-.probs_cube}
-\title{Change the labels of a set of time series}
+\title{Change the labels of a probs raster cube}
 \usage{
 \method{sits_labels}{probs_cube}(data) <- value
 }
 \arguments{
-\item{data}{Data cube or time series.}
+\item{data}{Raster cube with probability values.}
 
 \item{value}{A character vector used to convert labels. Labels will
 be renamed to the respective value positioned at the
 labels order returned by \code{\link{sits_labels}}.}
 }
 \description{
-Change the labels of a set of time series
+Change the labels of a probs raster cube
 }

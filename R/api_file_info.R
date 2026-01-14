@@ -354,8 +354,9 @@ NULL
 #' @param fi   file_info
 #' @param band selected band
 #' @param block selected block
+#' @param type  data type to be read
 #' @returns image values for the selected band and block
-.fi_read_block <- function(fi, band, block) {
+.fi_read_block <- function(fi, band, block, type = "numeric") {
     band <- band[[1L]]
     # Stops if no band is found
     fi <- .fi_filter_bands(fi = fi, bands = band)
@@ -367,7 +368,7 @@ NULL
         value = band
     )
     # Read values from all files in file_info
-    values <- .raster_read_rast(files = files, block = block)
+    values <- .raster_read_rast(files = files, block = block, type = type)
     # Log here
     .debug_log(
         event = "end_block_data_read",

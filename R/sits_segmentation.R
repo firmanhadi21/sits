@@ -48,15 +48,22 @@
 #'    named XY values ("xmin", "xmax", "ymin", "ymax") or
 #'    named lat/long values ("lon_min", "lat_min", "lon_max", "lat_max").
 #'
-#'    As of version 1.5.3, the only \code{seg_fn} function available is
-#'    \code{\link[sits]{sits_slic}}, which uses the Simple Linear
-#'    Iterative Clustering (SLIC) algorithm that clusters pixels to
-#'    generate compact, nearly uniform superpixels. This algorithm has been
-#'    adapted by Nowosad and Stepinski to work with multispectral and
-#'    multitemporal images. SLIC uses spectral similarity and
-#'    proximity in the spectral and temporal space to
-#'    segment the image into superpixels. Superpixels are clusters of pixels
-#'    with similar spectral and temporal responses that are spatially close.
+#'    As of version 1.5.4, two segmentation functions are available. The
+#'    preferred option is \code{\link[sits]{sits_snic}}, which implements
+#'    the Simple Non-Iterative Clustering (SNIC) algorithm to generate
+#'    compact and homogeneous superpixels directly from uniformly distributed
+#'    seeds. SNIC avoids the iterative refinement step used in SLIC and is
+#'    generally faster and more memory-efficient, making it suitable for
+#'    large multispectral or multitemporal data cubes.
+#'
+#'    The previous function \code{\link[sits]{sits_slic}}, based on the
+#'    Simple Linear Iterative Clustering (SLIC) algorithm as adapted by
+#'    Nowosad and Stepinski for multispectral and multitemporal imagery,
+#'    remains available but is now deprecated and will be removed in a future
+#'    release. SLIC clusters pixels using spectral similarity and
+#'    spatial–temporal proximity to produce nearly uniform superpixels,
+#'    but its iterative nature makes it less efficient for large-scale
+#'    Earth observation workflows.
 #'
 #'    The result of \code{sits_segment} is a data cube tibble with an additional
 #'    vector file in the \code{geopackage} format. The location of the vector
@@ -64,6 +71,11 @@
 #'    \code{vector_info}.
 #'
 #' @references
+#'         Achanta, Radhakrishna, and Sabine Susstrunk. 2017.
+#'         “Superpixels and Polygons Using Simple Non-Iterative Clustering.”
+#'         Proceedings of the IEEE Conference on Computer Vision and Pattern
+#'         Recognition, 4651–60.
+#'
 #'         Achanta, Radhakrishna, Appu Shaji, Kevin Smith, Aurelien Lucchi,
 #'         Pascal Fua, and Sabine Süsstrunk. 2012. “SLIC Superpixels Compared
 #'         to State-of-the-Art Superpixel Methods.” IEEE Transactions on
@@ -86,13 +98,11 @@
 #'     # segment the vector cube
 #'     segments <- sits_segment(
 #'         cube = cube,
-#'         seg_fn = sits_slic(
-#'             step = 10,
-#'             compactness = 1,
-#'             dist_fun = "euclidean",
-#'             avg_fun = "median",
-#'             iter = 30,
-#'             minarea = 10
+#'         seg_fn = sits_snic(
+#'             grid_seeding = "diamond",
+#'             spacing = 15,
+#'             compactness = 0.5,
+#'             padding = 2
 #'         ),
 #'         output_dir = tempdir()
 #'     )
@@ -112,7 +122,7 @@
 #' }
 #' @export
 sits_segment <- function(cube,
-                         seg_fn = sits_slic(),
+                         seg_fn = sits_snic(),
                          roi = NULL,
                          impute_fn = impute_linear(),
                          start_date = NULL,
@@ -206,14 +216,20 @@ sits_segment <- function(cube,
 #' @author Felipe Carlos, \email{efelipecarlos@@gmail.com}
 #'
 #' @description
-#' Apply a segmentation on a data cube based on the \code{supercells} package.
-#' This is an adaptation and extension to remote sensing data of the
-#' SLIC superpixels algorithm proposed by Achanta et al. (2012).
-#' See references for more details.
+#' Apply a segmentation on a data cube using either the \code{supercells} or
+#' \code{snic} packages, depending on the chosen algorithm. As of version
+#' 1.5.4, two segmentation methods are supported. The recommended option is
+#' SNIC, implemented via the \code{snic} package, which applies a
+#' non-iterative clustering strategy to generate compact, homogeneous
+#' superpixels from uniformly distributed seeds (Achanta and Susstrunk, 2017).
+#' The alternative method uses the SLIC algorithm implemented in the
+#' \code{supercells} package, adapted for remote sensing data following
+#' Achanta et al. (2012). This SLIC variant is deprecated and will be
+#' removed in a future release. See references for more details.
 #'
 #' @param data          A matrix with time series.
 #' @param step          Distance (in number of cells) between initial
-#'                      supercells' centers.
+#'                      supercells' centers
 #' @param compactness   A compactness value. Larger values cause clusters to
 #'                      be more compact/even (square).
 #' @param dist_fun      Distance function. Currently implemented:
@@ -256,16 +272,14 @@ sits_segment <- function(cube,
 #'     # segment the vector cube
 #'     segments <- sits_segment(
 #'         cube = cube,
-#'         seg_fn = sits_slic(
-#'             step = 10,
-#'             compactness = 1,
-#'             dist_fun = "euclidean",
-#'             avg_fun = "median",
-#'             iter = 30,
-#'             minarea = 10
+#'         seg_fn = sits_snic(
+#'             grid_seeding = "rectangular",
+#'             spacing = 10,
+#'             compactness = 0.3,
+#'             padding = 0
 #'         ),
 #'         output_dir = tempdir(),
-#'         version = "slic-demo"
+#'         version = "snic-demo"
 #'     )
 #'     # create a classification model
 #'     rfor_model <- sits_train(samples_modis_ndvi, sits_rfor())
@@ -274,14 +288,15 @@ sits_segment <- function(cube,
 #'         data = segments,
 #'         ml_model = rfor_model,
 #'         output_dir = tempdir(),
-#'         version = "slic-demo"
+#'         version = "snic-demo"
 #'     )
 #'     # label the probability segments
 #'     seg_label <- sits_label_classification(
 #'         cube = seg_probs,
 #'         output_dir = tempdir(),
-#'         version = "slic-demo"
+#'         version = "snic-demo"
 #'     )
+#'     plot(seg_label)
 #' }
 #' @export
 sits_slic <- function(data = NULL,
@@ -292,6 +307,8 @@ sits_slic <- function(data = NULL,
                       iter = 30L,
                       minarea = 10L,
                       verbose = FALSE) {
+    # notify users about the deprecation
+    warning(.conf("messages", "sits_slic_deprec"))
     # set caller for error msg
     .check_set_caller("sits_slic")
     # step is OK?
@@ -340,7 +357,7 @@ sits_slic <- function(data = NULL,
             return(v_obj)
         }
         # Get valid centers
-        valid_centers <- slic[[2L]][, 1L] != 0L | slic[[2L]][, 2L] != 0L
+        valid_centers <- slic[[2L]][, 1L] != 0L & slic[[2L]][, 2L] != 0L
         # Bind valid centers with segments table
         v_obj <- cbind(
             v_obj, matrix(stats::na.omit(slic[[2L]][valid_centers, ]), ncol = 2L)
@@ -350,10 +367,155 @@ sits_slic <- function(data = NULL,
         # Get the extent of template raster
         v_ext <- .raster_bbox(v_temp)
         # Calculate pixel position by rows and cols
-        xres <- v_obj[["x"]] * .raster_xres(v_temp) + .raster_xres(v_temp) / 2L
-        yres <- v_obj[["y"]] * .raster_yres(v_temp) - .raster_yres(v_temp) / 2L
-        v_obj[["x"]] <- as.vector(v_ext)[[1L]] + xres
-        v_obj[["y"]] <- as.vector(v_ext)[[4L]] - yres
+        x_pos <- v_obj[["x"]] * .raster_xres(v_temp) + .raster_xres(v_temp) / 2L
+        y_pos <- v_obj[["y"]] * .raster_yres(v_temp) - .raster_yres(v_temp) / 2L
+        v_obj[["x"]] <- as.vector(v_ext)[[1L]] + x_pos
+        v_obj[["y"]] <- as.vector(v_ext)[[4L]] - y_pos
+        # Get only polygons segments
+        v_obj <- suppressWarnings(sf::st_collection_extract(v_obj, "POLYGON"))
+        # Return the segment object
+        v_obj
+    }
+}
+
+#' @title Segment an image using SNIC
+#' @name sits_snic
+#'
+#' @author Rolf Simoes, \email{rolfsimoes@@gmail.com}
+#' @author Gilberto Camara, \email{gilberto.camara@@inpe.br}
+#' @author Felipe Carlos, \email{efelipecarlos@@gmail.com}
+#' @author Felipe Carvalho, \email{felipe.carvalho@@inpe.br}
+#'
+#' @description
+#' Apply a segmentation on a data cube based on the \code{snic} package.
+#' This is an adaptation and extension to remote sensing data of the
+#' SNIC superpixels algorithm proposed by Achanta and Süsstrunk (2017).
+#' See reference for more details.
+#'
+#' @param data          A matrix with time series.
+#' @param grid_seeding  Method for grid seeding (one of
+#'                      "rectangular", "diamond", "hexagonal",
+#'                      "random").
+#' @param spacing       Distance (in number of cells) between initial
+#'                      supercells' centers
+#' @param compactness   A compactness value. Larger values cause clusters to
+#'                      be more compact/even (square).
+#' @param padding       Distance (in pixels) from the image borders within
+#'                      which no seeds are placed.
+#'
+#' @references
+#' "Superpixels and Polygons Using Simple Non-Iterative Clustering",
+#' R. Achanta and S. Süsstrunk, CVPR 2017.
+#'
+#' @examples
+#' if (sits_run_examples()) {
+#'     data_dir <- system.file("extdata/raster/mod13q1", package = "sits")
+#'     # create a data cube
+#'     cube <- sits_cube(
+#'         source = "BDC",
+#'         collection = "MOD13Q1-6.1",
+#'         data_dir = data_dir
+#'     )
+#'     # segment the vector cube
+#'     segments <- sits_segment(
+#'         cube = cube,
+#'         seg_fn = sits_snic(
+#'             grid_seeding = "rectangular",
+#'             spacing = 10,
+#'             compactness = 0.5,
+#'             padding = 5
+#'         ),
+#'         output_dir = tempdir(),
+#'         version = "snic-demo"
+#'     )
+#'     # create a classification model
+#'     rfor_model <- sits_train(samples_modis_ndvi, sits_rfor())
+#'     # classify the segments
+#'     seg_probs <- sits_classify(
+#'         data = segments,
+#'         ml_model = rfor_model,
+#'         output_dir = tempdir(),
+#'         version = "snic-demo"
+#'     )
+#'     # label the probability segments
+#'     seg_label <- sits_label_classification(
+#'         cube = seg_probs,
+#'         output_dir = tempdir(),
+#'         version = "snic-demo"
+#'     )
+#'     plot(seg_label)
+#' }
+#' @export
+sits_snic <- function(data = NULL,
+                      grid_seeding = "rectangular",
+                      spacing = 10,
+                      compactness = 0.5,
+                      padding = floor(spacing / 2)) {
+    # require snic package
+    .check_require_packages("snic")
+    # set caller for error msg
+    .check_set_caller("sits_snic")
+    # spacing is OK?
+    .check_int_parameter(spacing, min = 1L, max = 500L)
+    # compactness is OK?
+    .check_num_parameter(compactness, min = 0L, max = 1L)
+    # padding is OK?
+    .check_int_parameter(padding, min = 0L, max = 500L)
+    # grid seeding
+    .check_snic_grid(grid_seeding)
+
+    # calls SNIC for a matrix
+    function(data, block, bbox) {
+        # Create a template rast
+        v_temp <- .raster_new_rast(
+            nrows = block[["nrows"]], ncols = block[["ncols"]],
+            xmin = bbox[["xmin"]], xmax = bbox[["xmax"]],
+            ymin = bbox[["ymin"]], ymax = bbox[["ymax"]],
+            nlayers = 1L, crs = bbox[["crs"]]
+        )
+        # set dimensions for image
+        img_height <- block[["nrows"]]
+        img_width <- block[["ncols"]]
+        img_bands <- ncol(data)
+        # Adjust data
+        dim(data) <- c(img_width, img_height, img_bands)
+        data <- aperm(data, c(2, 1, 3))
+        # generate seeds for classification
+        seeds <- snic::snic_grid(data,
+            type = grid_seeding,
+            img = data,
+            spacing = spacing,
+            padding = padding
+        )
+        # use SNIC to produce a one-band segmented raster image
+        seg_img <- snic::snic(
+            x = data,
+            seeds = seeds,
+            compactness = compactness
+        )
+        # permute dimensions of one-band raster image
+        seg_img <- snic::snic_get_seg(seg_img)
+        seg_img <- aperm(seg_img, c(2, 1, 3))
+        dim(seg_img) <- c(img_width * img_height, 1)
+
+        # extract segments for one-band raster image
+        # Set values and NA value in template raster
+        v_obj <- .raster_set_values(v_temp, seg_img)
+        v_obj <- .raster_set_na(v_obj, -1L)
+        # Extract polygons raster and convert to sf object
+        v_obj <- .raster_extract_polygons(v_obj, dissolve = TRUE)
+        v_obj <- sf::st_as_sf(v_obj)
+        if (nrow(v_obj) == 0L) {
+            return(v_obj)
+        }
+        # Get valid centroids
+        centroids <- suppressWarnings(sf::st_centroid(v_obj))
+        # Extract centroid matrix from centroids
+        centroids_xy <- sf::st_coordinates(centroids)
+        # Bind valid centers with segments table
+        v_obj <- cbind(v_obj, centroids_xy)
+        # Rename columns
+        names(v_obj) <- c("supercells", "x", "y", "geometry")
         # Get only polygons segments
         v_obj <- suppressWarnings(sf::st_collection_extract(v_obj, "POLYGON"))
         # Return the segment object

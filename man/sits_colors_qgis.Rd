@@ -2,9 +2,15 @@
 % Please edit documentation in R/sits_colors.R
 \name{sits_colors_qgis}
 \alias{sits_colors_qgis}
+\alias{sits_colors_qgis.class_cube}
+\alias{sits_colors_qgis.class_vector_cube}
 \title{Function to save color table as QML style for data cube}
 \usage{
 sits_colors_qgis(cube, file)
+
+\method{sits_colors_qgis}{class_cube}(cube, file)
+
+\method{sits_colors_qgis}{class_vector_cube}(cube, file)
 }
 \arguments{
 \item{cube}{a classified data cube}

@@ -20,7 +20,7 @@
     names_tb <- dplyr::filter(color_tb, .data[["name"]] %in% labels)[["name"]]
     # find the labels that exist in the color table
     labels_exist <- labels[labels %in% names_tb]
-    # get the colors for the names that exist
+    # get the colors for the labels that exist in the SITS color table
     colors <- purrr::map_chr(labels_exist, function(l) {
         color_tb |>
             dplyr::filter(.data[["name"]] == l) |>
@@ -141,7 +141,7 @@
         )
 }
 #'
-#' @title Write a color table in QGIS Style format
+#' @title Write a raster color table in QGIS Style format
 #' @name .colors_qml
 #' @author Gilberto Camara, \email{gilberto.camara@@inpe.br}
 #' @keywords internal
@@ -154,7 +154,6 @@
     .check_chr_contains(colnames(color_table), c("index", "color", "name"))
     # open the file connection
     con <- file(file, "w")
-
     # read the top part of QGIS style
     top_qgis_style <- system.file("extdata/qgis/qgis_style_top.xml",
         package = "sits"
@@ -198,6 +197,105 @@
     # close the file
     on.exit(close(con))
 }
+#'
+#' @title Write a vector color table in GIMP Format to be read by QGIS
+#' @name .colors_vector_qml
+#' @author Gilberto Camara, \email{gilberto.camara@@inpe.br}
+#' @keywords internal
+#' @noRd
+#' @param color_table color table to write to QGIS
+#' @param file the file name to be written to.
+#' @return Called for side effects.
+.colors_vector_qml <- function(color_table, file) {
+    # open the file connection
+    con <- file(file, "w")
+    # find out how many labels have to be written
+    nlabels <- nrow(color_table)
+    # read the top part of QGIS style
+    top_qgis_style <- system.file("extdata/qgis/qgis_style_vector_top.xml",
+                                  package = "sits"
+    )
+    top_lines <- readLines(top_qgis_style)
+    # write the top part of QGIS style in the output file
+    writeLines(top_lines, con = con)
+    # write the start of the categories
+    writeLines("<categories>", con = con)
+    # write the categories
+    ncategories <- nlabels - 1
+    for (i in 0:ncategories) {
+        color_name <- color_table[i + 1, "name"]
+        qml_label <- paste0("label=","\"", color_name, "\"")
+        qml_value <- paste0("value=", "\"", color_name, "\"")
+        qml_symbol <- paste0("symbol=","\"", as.character(i), "\"")
+        writeLines(paste("<category render=\"true\"",
+                         qml_label,
+                         "type=\"string\"",
+                         qml_value,
+                         qml_symbol,
+                         "/>"),
+                   con)
+    }
+    # write the last line of categories
+    qml_symbol_extra <- paste0("\"", as.character(nlabels), "\"")
+    writeLines(paste("<category render=\"false\"",
+                     "label= \"\"",
+                     "type=\"string\"",
+                     "value= \"\"",
+                     "symbol=", qml_symbol_extra, "/>"),
+               con)
+
+    # write the end of the categories
+    writeLines("</categories>", con = con)
+
+    # write the symbols
+    writeLines("<symbols>", con = con)
+    for (i in 0:ncategories) {
+        qml_name <- paste0("name=","\"", as.character(i), "\"")
+        writeLines(paste("<symbol",
+                         "alpha=\"1\"",
+                         "type=\"fill\"",
+                          qml_name,
+                         ">"),
+                   con)
+        # read data
+        data_def <- system.file("extdata/qgis/qgis_data_defined_properties.xml",
+                                      package = "sits"
+        )
+        data_def_lines <- readLines(data_def)
+        # write the top part of QGIS style in the output file
+        writeLines(data_def_lines, con = con)
+        # write the color values
+        writeLines("<layer enabled=\"1\" class=\"SimpleFill\">",
+                   con)
+        writeLines("<Option type=\"Map\">", con)
+        # convert color to RGB and write to XML
+        hex_color <- color_table[i + 1, "color"]
+        rgb <- grDevices::col2rgb(hex_color)
+        # format RGBA value to be inserted in QML file
+        color_val <- paste0(paste(as.character(rgb), collapse = ","),",255")
+        qml_color <- paste0("value=", "\"",color_val,"\"")
+        # write QML color
+        writeLines(paste("<Option type=\"QString\"",
+                         qml_color, "name=\"color\"/>"),
+                   con)
+        writeLines("<Option type=\"QString\" value=\"solid\" name=\"style\"/>",
+                   con)
+        writeLines("</Option>", con)
+        writeLines("</layer>", con)
+        writeLines("</symbol>", con)
+    }
+    writeLines("</symbols>", con)
+    # read the bottom part of QGIS style
+    bottom_qgis_style <- system.file("extdata/qgis/qgis_style_vector_bottom.xml",
+                                  package = "sits"
+    )
+    bottom_lines <- readLines(bottom_qgis_style)
+    # write the bottom part of QGIS style in the output file
+    writeLines(bottom_lines, con = con)
+    # close the file
+    on.exit(close(con))
+}
+
 #' @title Transform an RColorBrewer name to cols4all name
 #' @name .colors_cols4all_name
 #' @author Gilberto Camara, \email{gilberto.camara@@inpe.br}

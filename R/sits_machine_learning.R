@@ -14,7 +14,7 @@
 #' @param num_trees  Number of trees to grow. This should not be set to too
 #'                   small a number, to ensure that every input
 #'                   row gets predicted at least a few times (default: 100)
-#'                   (integer, min = 50, max = 150).
+#'                   (integer, min = 20).
 #' @param mtry       Number of variables randomly sampled as candidates at
 #'                   each split (default: NULL - use default value of
 #'                   \code{randomForest::randomForest()} function, i.e.
@@ -473,7 +473,8 @@ sits_xgboost <- function(samples = NULL,
             gamma = min_split_loss, max_depth = max_depth,
             min_child_weight = min_child_weight,
             max_delta_step = max_delta_step, subsample = subsample,
-            nthread = nthread
+            nthread = nthread,
+            num_class = length(labels)
         )
         if (verbose) {
             verbose <- 1L
@@ -486,9 +487,8 @@ sits_xgboost <- function(samples = NULL,
             label = references
         )
         # train the model
-        model <- xgboost::xgb.train(xgb_matrix,
-            num_class = length(labels), params = params,
-            nrounds = nrounds, verbose = verbose
+        model <- xgboost::xgb.train(
+            xgb_matrix, params = params, nrounds = nrounds, verbose = verbose
         )
         # Get best ntreelimit
         ntreelimit <- model[["best_ntreelimit"]]
@@ -500,8 +500,7 @@ sits_xgboost <- function(samples = NULL,
             input_pixels <- nrow(values)
             # Do classification
             values <- stats::predict(
-                object = model, as.matrix(values), ntreelimit = ntreelimit,
-                reshape = TRUE
+                object = model, as.matrix(values), iterationrange = ntreelimit
             )
             # Are the results consistent with the data input?
             .check_processed_values(values, input_pixels)

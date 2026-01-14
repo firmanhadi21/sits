@@ -13,8 +13,9 @@
   blue = NULL,
   tile = x[["tile"]][[1L]],
   dates = NULL,
-  seg_color = "yellow",
-  line_width = 0.3,
+  roi = NULL,
+  seg_color = "black",
+  line_width = 0.2,
   palette = "RdYlGn",
   rev = FALSE,
   scale = 1,
@@ -41,11 +42,13 @@
 
 \item{dates}{Dates to be plotted.}
 
+\item{roi}{Spatial extent to plot in WGS 84 - (see notes)}
+
 \item{seg_color}{Color to show the segment boundaries}
 
 \item{line_width}{Line width to plot the segments boundary (in pixels)}
 
-\item{palette}{An RColorBrewer palette}
+\item{palette}{An RColorBrewer or "cols4all" palette}
 
 \item{rev}{Reverse the color order in the palette?}
 
@@ -72,6 +75,7 @@ visual output is controlled by "seg_color" and "line_width" parameters.
 The raster output works in the same way as the false color and RGB plots.
 }
 \note{
+To see which color palettes are supported, please run cols4all::c4a_gui().
 The following optional parameters are available to allow for detailed
       control over the plot output:
 \itemize{
@@ -80,6 +84,17 @@ The following optional parameters are available to allow for detailed
 \item \code{legend_text_size}: relative size of legend text (default = 0.7)
 \item \code{legend_bg_color}: color of legend background (default = "white")
 \item \code{legend_bg_alpha}: legend opacity (default = 0.3)
+}
+
+To define a \code{roi} use one of:
+     \itemize{
+       \item{A path to a shapefile with polygons;}
+       \item{A \code{sfc} or \code{sf} object from \code{sf} package;}
+       \item{A \code{SpatExtent} object from \code{terra} package;}
+       \item{A named \code{vector} (\code{"lon_min"},
+            \code{"lat_min"}, \code{"lon_max"}, \code{"lat_max"}) in WGS84;}
+       \item{A named \code{vector} (\code{"xmin"}, \code{"xmax"},
+             \code{"ymin"}, \code{"ymax"}) with XY coordinates.}
 }
 }
 \examples{

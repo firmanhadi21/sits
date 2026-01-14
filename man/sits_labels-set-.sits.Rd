@@ -7,7 +7,7 @@
 \method{sits_labels}{sits}(data) <- value
 }
 \arguments{
-\item{data}{Data cube or time series.}
+\item{data}{Time series.}
 
 \item{value}{A character vector used to convert labels. Labels will
 be renamed to the respective value positioned at the
