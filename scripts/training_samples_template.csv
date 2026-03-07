@@ -1,0 +1,24 @@
+longitude,latitude,label,start_date,end_date
+# Example training samples for PlanetScope classification
+#
+# Replace with your actual coordinates and dates
+# Date format: YYYY-MM-DD
+#
+# Guidelines:
+# - longitude, latitude: Coordinates in WGS84 (EPSG:4326)
+# - label: Class name (e.g., forest, water, cropland, urban)
+# - start_date: First date when this label is valid
+# - end_date: Last date when this label is valid
+#
+# For stable land cover (forest, water), use wide date range:
+#   -47.123,10.456,forest,2023-01-01,2025-12-31
+#
+# For seasonal classes (crops), use specific season:
+#   -47.124,10.457,cropland,2024-06-01,2024-09-30
+#
+# For single observation date, use same date:
+#   -47.125,10.458,water,2024-07-14,2024-07-14
+#
+# For land cover change, create multiple samples at same location:
+#   -47.126,10.459,forest,2023-01-01,2023-12-31
+#   -47.126,10.459,cropland,2024-01-01,2025-12-31

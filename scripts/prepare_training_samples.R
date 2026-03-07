@@ -16,21 +16,53 @@ cat("========================================\n\n")
 # ==============================================================================
 
 create_samples_from_csv <- function(csv_file, output_file) {
-    # CSV should have columns: longitude, latitude, label
+    # CSV should have columns: longitude, latitude, label, start_date, end_date
     # Example:
-    #   longitude,latitude,label
-    #   -47.123,10.456,forest
-    #   -47.124,10.457,water
-    #   -47.125,10.458,cropland
+    #   longitude,latitude,label,start_date,end_date
+    #   -47.123,10.456,forest,2023-01-01,2025-12-31
+    #   -47.124,10.457,water,2024-01-01,2024-12-31
+    #   -47.125,10.458,cropland,2024-07-01,2024-09-30
+    #
+    # Or minimal format with just date: longitude, latitude, label, date
+    #   longitude,latitude,label,date
+    #   -47.123,10.456,forest,2024-07-14
 
     cat("Creating samples from CSV...\n")
 
-    samples_df <- read.csv(csv_file)
+    samples_df <- read.csv(csv_file, stringsAsFactors = FALSE)
+
+    # Check for date columns
+    has_dates <- "start_date" %in% names(samples_df) || "date" %in% names(samples_df)
+
+    if (!has_dates) {
+        cat("  WARNING: No date information found in CSV!\n")
+        cat("  It's recommended to include start_date and end_date columns.\n")
+        cat("  Without dates, the entire time series will be used for each sample.\n\n")
+    } else {
+        # Handle single 'date' column
+        if ("date" %in% names(samples_df) && !"start_date" %in% names(samples_df)) {
+            samples_df$start_date <- samples_df$date
+            samples_df$end_date <- samples_df$date
+        }
+
+        # Convert date columns to Date type
+        if ("start_date" %in% names(samples_df)) {
+            samples_df$start_date <- as.Date(samples_df$start_date)
+        }
+        if ("end_date" %in% names(samples_df)) {
+            samples_df$end_date <- as.Date(samples_df$end_date)
+        }
+    }
 
     # Convert to sf object
+    coord_cols <- c("longitude", "latitude")
+    if (!all(coord_cols %in% names(samples_df))) {
+        stop("CSV must have 'longitude' and 'latitude' columns!")
+    }
+
     samples_sf <- sf::st_as_sf(
         samples_df,
-        coords = c("longitude", "latitude"),
+        coords = coord_cols,
         crs = 4326  # WGS84
     )
 
@@ -38,6 +70,10 @@ create_samples_from_csv <- function(csv_file, output_file) {
     sf::st_write(samples_sf, output_file, delete_dsn = TRUE)
 
     cat("  Created", nrow(samples_sf), "samples\n")
+    if (has_dates) {
+        cat("  Date range:", min(samples_df$start_date, na.rm = TRUE), "to",
+            max(samples_df$end_date, na.rm = TRUE), "\n")
+    }
     cat("  Saved to:", output_file, "\n\n")
 
     return(samples_sf)
@@ -116,6 +152,20 @@ validate_training_samples <- function(samples_file, cube = NULL) {
         return(FALSE)
     }
 
+    # Check for date columns
+    has_dates <- "start_date" %in% names(samples) && "end_date" %in% names(samples)
+    if (!has_dates) {
+        cat("  WARNING: No start_date/end_date columns found!\n")
+        cat("  It's recommended to include temporal information for each sample.\n")
+        cat("  This ensures labels are only applied to the correct time period.\n\n")
+    } else {
+        cat("  Date information: YES\n")
+        samples$start_date <- as.Date(samples$start_date)
+        samples$end_date <- as.Date(samples$end_date)
+        cat("  Date range:", min(samples$start_date, na.rm = TRUE), "to",
+            max(samples$end_date, na.rm = TRUE), "\n")
+    }
+
     # Check geometry type
     geom_type <- sf::st_geometry_type(samples, by_geometry = FALSE)
     cat("  Geometry type:", as.character(geom_type), "\n")
@@ -158,7 +208,27 @@ validate_training_samples <- function(samples_file, cube = NULL) {
             cat("    WARNING: No samples overlap with cube extent!\n")
             cat("    Check that CRS and coordinates are correct.\n")
         } else {
-            cat("    OK: Samples overlap with cube extent\n")
+            cat("    OK:", nrow(samples_in_cube), "samples overlap with cube extent\n")
+        }
+
+        # Check temporal overlap
+        if (has_dates) {
+            cube_timeline <- sits_timeline(cube)
+            cube_start <- min(as.Date(cube_timeline))
+            cube_end <- max(as.Date(cube_timeline))
+
+            sample_start <- min(samples$start_date, na.rm = TRUE)
+            sample_end <- max(samples$end_date, na.rm = TRUE)
+
+            cat("\n  Temporal overlap check:\n")
+            cat("    Cube timeline:", cube_start, "to", cube_end, "\n")
+            cat("    Sample dates:", sample_start, "to", sample_end, "\n")
+
+            if (sample_end < cube_start || sample_start > cube_end) {
+                cat("    WARNING: No temporal overlap between samples and cube!\n")
+            } else {
+                cat("    OK: Temporal overlap exists\n")
+            }
         }
     }
 
@@ -178,6 +248,9 @@ convert_polygons_to_points <- function(polygon_file,
     # Read polygons
     polygons <- sf::st_read(polygon_file, quiet = TRUE)
 
+    # Check if polygons have date information
+    has_dates <- "start_date" %in% names(polygons) && "end_date" %in% names(polygons)
+
     # Generate random points within each polygon
     all_points <- list()
 
@@ -188,10 +261,19 @@ convert_polygons_to_points <- function(polygon_file,
         points <- sf::st_sample(polygon, size = points_per_polygon)
 
         # Convert to sf and add attributes
-        points_sf <- sf::st_sf(
-            label = polygon$label,
-            geometry = points
-        )
+        if (has_dates) {
+            points_sf <- sf::st_sf(
+                label = polygon$label,
+                start_date = polygon$start_date,
+                end_date = polygon$end_date,
+                geometry = points
+            )
+        } else {
+            points_sf <- sf::st_sf(
+                label = polygon$label,
+                geometry = points
+            )
+        }
 
         all_points[[i]] <- points_sf
     }
@@ -203,6 +285,9 @@ convert_polygons_to_points <- function(polygon_file,
     sf::st_write(all_points_sf, output_file, delete_dsn = TRUE)
 
     cat("  Created", nrow(all_points_sf), "points from", nrow(polygons), "polygons\n")
+    if (has_dates) {
+        cat("  Date information preserved\n")
+    }
     cat("  Saved to:", output_file, "\n\n")
 
     return(all_points_sf)
@@ -217,7 +302,7 @@ cat("This script provides functions to prepare training samples.\n\n")
 cat("Available functions:\n\n")
 
 cat("1. create_samples_from_csv(csv_file, output_file)\n")
-cat("   Create samples from CSV with longitude, latitude, label columns\n\n")
+cat("   Create samples from CSV with longitude, latitude, label, start_date, end_date columns\n\n")
 
 cat("2. create_samples_from_reference(reference_raster, n_samples_per_class, output_file)\n")
 cat("   Extract random samples from an existing classification\n\n")
@@ -228,8 +313,18 @@ cat("   Validate existing training samples\n\n")
 cat("4. convert_polygons_to_points(polygon_file, points_per_polygon, output_file)\n")
 cat("   Convert polygon samples to point samples\n\n")
 
+cat("Example CSV format (RECOMMENDED):\n")
+cat("  longitude,latitude,label,start_date,end_date\n")
+cat("  -47.123,10.456,forest,2023-01-01,2025-12-31\n")
+cat("  -47.124,10.457,water,2024-01-01,2024-12-31\n")
+cat("  -47.125,10.458,cropland,2024-07-01,2024-09-30\n\n")
+
+cat("Or minimal format with single date:\n")
+cat("  longitude,latitude,label,date\n")
+cat("  -47.123,10.456,forest,2024-07-14\n\n")
+
 cat("Example workflow:\n\n")
-cat("  # Option A: From CSV\n")
+cat("  # Option A: From CSV with dates\n")
 cat("  samples <- create_samples_from_csv(\n")
 cat("      csv_file = 'data/training_points.csv',\n")
 cat("      output_file = 'data/training_samples.gpkg'\n")

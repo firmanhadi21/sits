@@ -72,16 +72,19 @@ if (!file.exists(SAMPLES_FILE)) {
     cat("  Please create training samples with the following requirements:\n")
     cat("  - Spatial format: GeoPackage (.gpkg), Shapefile (.shp), or GeoJSON (.geojson)\n")
     cat("  - Must contain a 'label' column with class names\n")
-    cat("  - Coordinate system must match the PlanetScope data (typically UTM)\n")
-    cat("  - Samples should cover multiple dates across your time series\n\n")
-    cat("  Example using QGIS or R:\n")
-    cat("  1. Create point or polygon features\n")
-    cat("  2. Add a 'label' field with class names (e.g., 'forest', 'water', 'cropland')\n")
-    cat("  3. Save as GeoPackage\n\n")
-    cat("  Or create samples programmatically in R:\n")
-    cat("  samples <- sf::st_read('your_samples.gpkg')\n")
-    cat("  # Make sure it has 'label' column and geometry\n")
-    cat("  sf::st_write(samples, '", SAMPLES_FILE, "')\n\n", sep = "")
+    cat("  - RECOMMENDED: Include 'start_date' and 'end_date' columns (YYYY-MM-DD format)\n")
+    cat("    This ensures labels only apply to the correct time period\n")
+    cat("  - Coordinate system must match the PlanetScope data (typically UTM)\n\n")
+    cat("  Example CSV format:\n")
+    cat("    longitude,latitude,label,start_date,end_date\n")
+    cat("    -47.123,10.456,forest,2023-01-01,2025-12-31\n")
+    cat("    -47.124,10.457,water,2024-01-01,2024-12-31\n\n")
+    cat("  Convert CSV to GeoPackage:\n")
+    cat("    source('scripts/prepare_training_samples.R')\n")
+    cat("    samples <- create_samples_from_csv(\n")
+    cat("        csv_file = 'data/training_points.csv',\n")
+    cat("        output_file = '", SAMPLES_FILE, "'\n", sep = "")
+    cat("    )\n\n")
     stop("Cannot proceed without training samples")
 }
 
@@ -89,7 +92,24 @@ if (!file.exists(SAMPLES_FILE)) {
 training_samples_sf <- sf::st_read(SAMPLES_FILE, quiet = TRUE)
 
 cat("  Loaded", nrow(training_samples_sf), "samples\n")
-cat("  Classes:", paste(unique(training_samples_sf$label), collapse = ", "), "\n\n")
+cat("  Classes:", paste(unique(training_samples_sf$label), collapse = ", "), "\n")
+
+# Check for date information
+has_dates <- "start_date" %in% names(training_samples_sf) &&
+             "end_date" %in% names(training_samples_sf)
+
+if (has_dates) {
+    cat("  Date information: YES\n")
+    training_samples_sf$start_date <- as.Date(training_samples_sf$start_date)
+    training_samples_sf$end_date <- as.Date(training_samples_sf$end_date)
+    cat("  Sample date range:", min(training_samples_sf$start_date, na.rm = TRUE),
+        "to", max(training_samples_sf$end_date, na.rm = TRUE), "\n")
+} else {
+    cat("  Date information: NO - will use entire time series\n")
+    cat("  RECOMMENDATION: Add start_date and end_date columns to samples\n")
+    cat("  This ensures labels are only applied to correct time periods.\n")
+}
+cat("\n")
 
 # ==============================================================================
 # Step 3: Extract time series for training samples
@@ -101,6 +121,25 @@ training_data <- sits_get_data(
     cube = planet_cube,
     samples = training_samples_sf
 )
+
+# If samples have date information, filter time series to valid date range
+if (has_dates) {
+    cat("  Filtering time series to valid date ranges...\n")
+
+    for (i in seq_len(nrow(training_data))) {
+        ts <- training_data$time_series[[i]]
+        start_date <- training_data$start_date[i]
+        end_date <- training_data$end_date[i]
+
+        # Filter to date range
+        ts_filtered <- ts[ts$Index >= start_date & ts$Index <= end_date, ]
+
+        # Update time series
+        training_data$time_series[[i]] <- ts_filtered
+    }
+
+    cat("  Time series filtered to sample-specific date ranges\n")
+}
 
 cat("  Extracted time series for", nrow(training_data), "samples\n")
 cat("  Time series length:", nrow(training_data$time_series[[1]]), "dates\n\n")
