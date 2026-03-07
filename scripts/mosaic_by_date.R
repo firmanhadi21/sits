@@ -12,8 +12,8 @@ cat("========================================\n\n")
 # Configuration
 # ==============================================================================
 
-INPUT_DIR <- "data/planetscope_processed"
-OUTPUT_DIR <- "data/planetscope_mosaicked"
+INPUT_DIR <- "data/planetscope_cloudmasked"  # Using cloud-masked tiles
+OUTPUT_DIR <- "data/planetscope_mosaicked_masked"  # Output with cloud masking
 
 # Bands to process
 BANDS <- c("B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8")

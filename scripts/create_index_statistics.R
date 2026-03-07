@@ -11,8 +11,8 @@ cat("Creating Temporal Index Statistics\n")
 cat("========================================\n\n")
 
 # Configuration
-INDEX_DIR <- "data/planetscope_indices"
-OUTPUT_DIR <- "data/planetscope_index_stats"
+INDEX_DIR <- "data/planetscope_indices_masked"  # Using cloud-masked indices
+OUTPUT_DIR <- "data/planetscope_index_stats_masked"  # Output with cloud masking
 
 # Indices to process
 INDICES <- c("NDVI", "NDWI", "NDRE", "EVI", "SAVI", "GNDVI", "BSI", "NDTI")

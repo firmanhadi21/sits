@@ -11,8 +11,8 @@ cat("Creating Spectral Index Composites\n")
 cat("========================================\n\n")
 
 # Configuration
-INPUT_DIR <- "data/planetscope_mosaicked"
-OUTPUT_DIR <- "data/planetscope_indices"
+INPUT_DIR <- "data/planetscope_mosaicked_masked"  # Using cloud-masked mosaics
+OUTPUT_DIR <- "data/planetscope_indices_masked"  # Output with cloud masking
 
 # Indices to calculate
 INDICES <- c(
@@ -98,15 +98,15 @@ for (i in seq_along(unique_dates)) {
 
     # Load all required bands
     tryCatch({
-        # Find band files
-        b1_file <- list.files(INPUT_DIR, pattern = paste0("^", date, "_.*_B1\\.tif$"), full.names = TRUE)[1]
-        b2_file <- list.files(INPUT_DIR, pattern = paste0("^", date, "_.*_B2\\.tif$"), full.names = TRUE)[1]
-        b3_file <- list.files(INPUT_DIR, pattern = paste0("^", date, "_.*_B3\\.tif$"), full.names = TRUE)[1]
-        b4_file <- list.files(INPUT_DIR, pattern = paste0("^", date, "_.*_B4\\.tif$"), full.names = TRUE)[1]
-        b5_file <- list.files(INPUT_DIR, pattern = paste0("^", date, "_.*_B5\\.tif$"), full.names = TRUE)[1]
-        b6_file <- list.files(INPUT_DIR, pattern = paste0("^", date, "_.*_B6\\.tif$"), full.names = TRUE)[1]
-        b7_file <- list.files(INPUT_DIR, pattern = paste0("^", date, "_.*_B7\\.tif$"), full.names = TRUE)[1]
-        b8_file <- list.files(INPUT_DIR, pattern = paste0("^", date, "_.*_B8\\.tif$"), full.names = TRUE)[1]
+        # Find band files (mosaicked files are named: DATE_BX.tif)
+        b1_file <- list.files(INPUT_DIR, pattern = paste0("^", date, "_B1\\.tif$"), full.names = TRUE)[1]
+        b2_file <- list.files(INPUT_DIR, pattern = paste0("^", date, "_B2\\.tif$"), full.names = TRUE)[1]
+        b3_file <- list.files(INPUT_DIR, pattern = paste0("^", date, "_B3\\.tif$"), full.names = TRUE)[1]
+        b4_file <- list.files(INPUT_DIR, pattern = paste0("^", date, "_B4\\.tif$"), full.names = TRUE)[1]
+        b5_file <- list.files(INPUT_DIR, pattern = paste0("^", date, "_B5\\.tif$"), full.names = TRUE)[1]
+        b6_file <- list.files(INPUT_DIR, pattern = paste0("^", date, "_B6\\.tif$"), full.names = TRUE)[1]
+        b7_file <- list.files(INPUT_DIR, pattern = paste0("^", date, "_B7\\.tif$"), full.names = TRUE)[1]
+        b8_file <- list.files(INPUT_DIR, pattern = paste0("^", date, "_B8\\.tif$"), full.names = TRUE)[1]
 
         # Load bands as rasters
         b1 <- rast(b1_file)  # Coastal Blue

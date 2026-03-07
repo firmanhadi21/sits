@@ -7,8 +7,8 @@ cat("Creating RGB True Color Composites\n")
 cat("========================================\n\n")
 
 # Configuration
-INPUT_DIR <- "data/planetscope_mosaicked"
-OUTPUT_DIR <- "data/planetscope_rgb"
+INPUT_DIR <- "data/planetscope_mosaicked_masked"  # Using cloud-masked mosaics
+OUTPUT_DIR <- "data/planetscope_rgb_masked"  # Output with cloud masking
 
 # Create output directory
 if (!dir.exists(OUTPUT_DIR)) {
@@ -32,10 +32,10 @@ fail_count <- 0
 for (date in unique_dates) {
     cat("Processing", date, "...\n")
 
-    # Find band files for this date
-    b6_file <- list.files(INPUT_DIR, pattern = paste0("^", date, "_.*_B6\\.tif$"), full.names = TRUE)
-    b4_file <- list.files(INPUT_DIR, pattern = paste0("^", date, "_.*_B4\\.tif$"), full.names = TRUE)
-    b2_file <- list.files(INPUT_DIR, pattern = paste0("^", date, "_.*_B2\\.tif$"), full.names = TRUE)
+    # Find band files for this date (mosaicked files are named: DATE_BX.tif)
+    b6_file <- list.files(INPUT_DIR, pattern = paste0("^", date, "_B6\\.tif$"), full.names = TRUE)
+    b4_file <- list.files(INPUT_DIR, pattern = paste0("^", date, "_B4\\.tif$"), full.names = TRUE)
+    b2_file <- list.files(INPUT_DIR, pattern = paste0("^", date, "_B2\\.tif$"), full.names = TRUE)
 
     # Check if all bands exist
     if (length(b6_file) == 0 || length(b4_file) == 0 || length(b2_file) == 0) {
