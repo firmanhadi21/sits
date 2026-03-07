@@ -47,16 +47,16 @@ REG_RES    <- 30
 BANDS <- c("BLUE", "GREEN", "RED", "NIR08", "SWIR16", "SWIR22")
 
 # Training samples
-SAMPLES_STEP1 <- "data/samples_step1_landcover.gpkg"
-SAMPLES_STEP2 <- "data/samples_step2_dense_vegetation.gpkg"
-SAMPLES_STEP3 <- "data/samples_step3_sparse_vegetation.gpkg"
+SAMPLES_STEP1 <- "data/samples_landsat_step1_landcover.gpkg"
+SAMPLES_STEP2 <- "data/samples_landsat_step2_dense_vegetation.gpkg"
+SAMPLES_STEP3 <- "data/samples_landsat_step3_sparse_vegetation.gpkg"
 
 # Output
 OUTPUT_DIR <- "data/landsat_classification"
 
 # Posit Cloud resource limits (conservative)
-MEMSIZE    <- 4   # GB - Posit Cloud free tier has ~4GB RAM
-MULTICORES <- 1   # Posit Cloud free tier has 1 core (paid: up to 4)
+MEMSIZE    <- 8   # GB - Posit Cloud free tier has ~4GB RAM
+MULTICORES <- 4   # Posit Cloud free tier has 1 core (paid: up to 4)
 
 # Classifier
 CLASSIFIER <- "rf"

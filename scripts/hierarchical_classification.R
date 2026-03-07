@@ -30,9 +30,9 @@ ALL_BANDS <- c("B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8",
                "NDVI", "NDWI", "NDRE", "EVI", "SAVI", "GNDVI", "BSI", "NDTI")
 
 # Training samples (one file per step, each with a "label" column)
-SAMPLES_STEP1 <- "data/samples_step1_landcover.gpkg"
-SAMPLES_STEP2 <- "data/samples_step2_dense_vegetation.gpkg"
-SAMPLES_STEP3 <- "data/samples_step3_sparse_vegetation.gpkg"
+SAMPLES_STEP1 <- "data/samples_planet_step1_landcover.gpkg"
+SAMPLES_STEP2 <- "data/samples_planet_step2_dense_vegetation.gpkg"
+SAMPLES_STEP3 <- "data/samples_planet_step3_sparse_vegetation.gpkg"
 
 # Output directories
 OUTPUT_DIR_STEP1 <- "data/classification_step1"
