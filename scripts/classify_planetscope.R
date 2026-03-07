@@ -28,7 +28,8 @@ OUTPUT_DIR <- "data/classification_results"
 MODEL_FILE <- file.path(OUTPUT_DIR, "model.rds")
 
 # Classification parameters
-BANDS <- c("B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8")
+USE_INDICES <- TRUE  # Set to FALSE to use only original bands
+INDICES <- "all"  # Options: "all", c("vegetation", "water", "soil", "urban")
 CLASSIFIER <- "rf"  # Options: "rf", "xgboost", "svm", "lightgbm"
 
 # Post-processing
@@ -58,6 +59,24 @@ cat("  Tiles:", nrow(planet_cube), "\n")
 cat("  Timeline:", length(sits_timeline(planet_cube)), "dates\n")
 cat("  Date range:", min(sits_timeline(planet_cube)), "to", max(sits_timeline(planet_cube)), "\n")
 cat("  Bands:", paste(sits_bands(planet_cube), collapse = ", "), "\n\n")
+
+# ==============================================================================
+# Step 1b: Add spectral indices (optional)
+# ==============================================================================
+
+if (USE_INDICES) {
+    cat("Step 1b: Adding spectral indices...\n")
+
+    # Source the index calculation script
+    source("scripts/calculate_indices.R")
+
+    # Add indices to cube
+    planet_cube <- add_indices(planet_cube, indices = INDICES)
+
+    cat("  Updated bands:", paste(sits_bands(planet_cube), collapse = ", "), "\n\n")
+} else {
+    cat("Step 1b: Skipping indices (USE_INDICES = FALSE)\n\n")
+}
 
 # ==============================================================================
 # Step 2: Load training samples
