@@ -78,6 +78,10 @@ Rscript scripts/classify_planetscope.R
 - `DATA_DIR`: Location of processed PlanetScope data
 - `SAMPLES_FILE`: Training samples file (.gpkg, .shp, or .geojson)
 - `OUTPUT_DIR`: Where to save results
+- `USE_INDICES`: Enable spectral indices (TRUE/FALSE)
+- `INDICES`: Which index groups to use ("all", or c("vegetation", "water", "soil", "urban"))
+- `USE_TEMPORAL_FEATURES`: Add temporal statistics (mean, std, min, max, amplitude)
+- `KEEP_TIME_SERIES`: Keep raw time series + stats (TRUE) or stats only (FALSE)
 - `CLASSIFIER`: Algorithm to use ("rf", "xgboost", "svm", "lightgbm")
 - `MEMSIZE`: Memory allocation (GB)
 - `MULTICORES`: Number of CPU cores to use
@@ -283,6 +287,76 @@ Your PlanetScope data has irregular temporal spacing - this is normal and fine!
 - Regular spacing (monthly, weekly, etc.)
 - Same number of observations per pixel
 - Filling gaps between observations
+
+## Temporal Features vs Raw Time Series
+
+### Understanding How sits Uses Time Series Data
+
+**Option 1: Raw Time Series Only (sits default)**
+```r
+USE_TEMPORAL_FEATURES <- FALSE
+```
+
+- Uses individual values from each date: `[NDVI_2023-01-01, NDVI_2023-05-01, ...]`
+- Feature count: 19 dates × 24 bands/indices = **456 features**
+- Good: Captures exact temporal patterns
+- Challenge: Many features, sensitive to missing dates
+
+**Option 2: Temporal Statistics Only**
+```r
+USE_TEMPORAL_FEATURES <- TRUE
+KEEP_TIME_SERIES <- FALSE
+```
+
+- Creates summary features: `NDVI_mean, NDVI_std, NDVI_min, NDVI_max, NDVI_amplitude`
+- Feature count: 24 bands/indices × 5 stats = **120 features**
+- Good: Robust to irregular sampling, interpretable, faster
+- Example: "Natural forest has high stable NDVI" = `NDVI_mean=0.85, NDVI_std=0.05`
+
+**Option 3: Combined Approach (RECOMMENDED)**
+```r
+USE_TEMPORAL_FEATURES <- TRUE
+KEEP_TIME_SERIES <- TRUE
+```
+
+- Uses both raw time series AND statistics
+- Feature count: **456 + 120 = 576 features**
+- ML algorithm selects most informative features
+- Best accuracy, handles both patterns and stability
+
+### Temporal Statistics Explained
+
+For each band/index, calculates:
+
+| Statistic | What It Captures | Example Use |
+|-----------|-----------------|-------------|
+| **mean** | Average value over time | High for forests, low for bareland |
+| **std** | Temporal stability | Low for stable classes (forest), high for dynamic (ladang) |
+| **min** | Lowest point | Bare phase in ladang, dry season minimum |
+| **max** | Highest point | Peak vegetation in growth cycle |
+| **amplitude** | Half the range | Temporal variation magnitude |
+
+### Example: Natural Forest vs Ladang
+
+**Natural Forest:**
+```
+NDVI_mean: 0.85 (high vegetation)
+NDVI_std: 0.05 (very stable)
+NDVI_min: 0.80 (always high)
+NDVI_max: 0.90 (peak is near average)
+NDVI_amplitude: 0.05 (minimal variation)
+```
+
+**Ladang:**
+```
+NDVI_mean: 0.45 (moderate - mixed bare and vegetated)
+NDVI_std: 0.25 (highly variable)
+NDVI_min: 0.10 (bare soil phase)
+NDVI_max: 0.80 (peak vegetation)
+NDVI_amplitude: 0.35 (large swings)
+```
+
+The statistics **clearly differentiate** the two classes!
 
 ## Classification Algorithm Comparison
 

@@ -30,6 +30,8 @@ MODEL_FILE <- file.path(OUTPUT_DIR, "model.rds")
 # Classification parameters
 USE_INDICES <- TRUE  # Set to FALSE to use only original bands
 INDICES <- "all"  # Options: "all", c("vegetation", "water", "soil", "urban")
+USE_TEMPORAL_FEATURES <- TRUE  # Add mean, std, min, max, amplitude for each band/index
+KEEP_TIME_SERIES <- TRUE  # If FALSE, use ONLY temporal stats (faster, fewer features)
 CLASSIFIER <- "rf"  # Options: "rf", "xgboost", "svm", "lightgbm"
 
 # Post-processing
@@ -162,6 +164,27 @@ if (has_dates) {
 
 cat("  Extracted time series for", nrow(training_data), "samples\n")
 cat("  Time series length:", nrow(training_data$time_series[[1]]), "dates\n\n")
+
+# ==============================================================================
+# Step 3b: Add temporal features (optional)
+# ==============================================================================
+
+if (USE_TEMPORAL_FEATURES) {
+    cat("Step 3b: Adding temporal summary statistics...\n")
+
+    # Source the temporal features script
+    source("scripts/temporal_features.R")
+
+    # Add temporal features
+    training_data <- prepare_temporal_features(
+        training_data,
+        use_time_series = KEEP_TIME_SERIES
+    )
+
+    cat("  Temporal features added successfully!\n\n")
+} else {
+    cat("Step 3b: Skipping temporal features (USE_TEMPORAL_FEATURES = FALSE)\n\n")
+}
 
 # Check if we have enough samples per class
 sample_counts <- table(training_data$label)
