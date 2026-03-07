@@ -31,8 +31,9 @@ cat("========================================\n\n")
 BASE_LON <- 106.53
 BASE_LAT <- -7.12
 
-# Date range matching your PlanetScope data
-START_DATE <- as.Date("2023-01-01")
+# Date range (adjust to match your satellite data)
+# For Landsat 2015-2025, use the full range
+START_DATE <- as.Date("2015-01-01")
 END_DATE   <- as.Date("2025-12-31")
 
 # ==============================================================================
