@@ -18,22 +18,22 @@ cat("========================================\n\n")
 # Configuration
 # ==============================================================================
 
-DATA_DIR <- "../data/planetscope_processed"
-OUTPUT_DIR <- "../data/clustering_results"
+DATA_DIR <- "data/planetscope_mosaicked"  # Use mosaicked data
+OUTPUT_DIR <- "data/clustering_results"
 CLUSTER_OUTPUT <- file.path(OUTPUT_DIR, "clusters")
 
 # Clustering parameters
 N_CLUSTERS <- 10  # Number of clusters (adjust based on your expected classes)
-SAMPLE_SIZE <- 5000  # Number of pixels to sample for clustering (higher = slower but more accurate)
+SAMPLE_SIZE <- 2000  # Number of pixels to sample for clustering (reduced for multiple tiles)
 POINTS_PER_CLUSTER <- 20  # Number of sample points to extract per cluster
 
-# Index calculation
-USE_INDICES <- TRUE
-INDICES <- "all"
+# Index calculation (disabled for irregular cube)
+USE_INDICES <- FALSE
+INDICES <- c("vegetation", "water", "soil")  # Focus on key indices for faster processing
 
 # Memory settings
-MEMSIZE <- 4
-MULTICORES <- 2
+MEMSIZE <- 8
+MULTICORES <- 1  # Reduced to avoid gdalcubes parallel processing issues
 
 # ==============================================================================
 # Step 1: Create cube with indices
@@ -45,14 +45,57 @@ planet_cube <- sits_cube(
     source = "PLANET",
     collection = "MOSAIC-8B",
     data_dir = DATA_DIR,
-    parse_info = c("date", "X1", "X2", "tile", "X3", "X4", "X5", "X6", "X7", "X8", "band"),
+    parse_info = c("date", "tile", "X1", "band"),
     delim = "_"
 )
 
 cat("  Cube created:\n")
 cat("    Tiles:", nrow(planet_cube), "\n")
-cat("    Timeline:", length(sits_timeline(planet_cube)), "dates\n")
-cat("    Date range:", min(sits_timeline(planet_cube)), "to", max(sits_timeline(planet_cube)), "\n\n")
+
+# Handle multiple tiles with different timelines
+timeline <- sits_timeline(planet_cube)
+if (is.list(timeline)) {
+    # Multiple tiles with different timelines
+    all_dates <- unique(unlist(timeline))
+    cat("    Timeline: Multiple timelines (tiles have different dates)\n")
+    cat("    Date range:", min(as.Date(all_dates)), "to", max(as.Date(all_dates)), "\n\n")
+
+    # Select the tile with most dates for clustering
+    tile_lengths <- sapply(timeline, length)
+    best_tile_idx <- which.max(tile_lengths)
+
+    cat("  NOTE: Tiles have non-overlapping dates. Selecting tile", best_tile_idx, "for clustering\n")
+    cat("        (This tile has", tile_lengths[best_tile_idx], "dates)\n\n")
+
+    planet_cube <- planet_cube[best_tile_idx, ]
+
+    cat("  Selected tile:\n")
+    cat("    Timeline:", length(sits_timeline(planet_cube)), "dates\n")
+    cat("    Date range:", min(sits_timeline(planet_cube)), "to", max(sits_timeline(planet_cube)), "\n\n")
+} else {
+    cat("    Timeline:", length(timeline), "dates\n")
+    cat("    Date range:", min(timeline), "to", max(timeline), "\n\n")
+}
+
+# Create output directory if needed
+if (!dir.exists(OUTPUT_DIR)) {
+    dir.create(OUTPUT_DIR, recursive = TRUE)
+}
+
+# Regularize cube (required for sits_get_data)
+cat("  Regularizing cube (required for sampling)...\n")
+cat("  Using single-core processing to avoid crashes...\n")
+
+planet_cube <- sits_regularize(
+    cube = planet_cube,
+    period = "P1M",  # Monthly intervals
+    res = 3,  # 3m resolution
+    multicores = 1,  # Single core to avoid gdalcubes crashes
+    output_dir = file.path(OUTPUT_DIR, "regularized")
+)
+
+cat("  Regularization complete!\n")
+cat("    Timeline:", length(sits_timeline(planet_cube)), "dates\n\n")
 
 # Add indices if enabled
 if (USE_INDICES) {
@@ -73,12 +116,18 @@ cat("  Sampling", SAMPLE_SIZE, "random pixels...\n")
 first_tile <- planet_cube[1, ]
 bbox <- sits_bbox(first_tile)
 
+# Extract bbox values (sits_bbox returns a tibble)
+xmin <- bbox$xmin[1]
+xmax <- bbox$xmax[1]
+ymin <- bbox$ymin[1]
+ymax <- bbox$ymax[1]
+
 # Generate random points
 set.seed(42)  # For reproducibility
 random_points <- data.frame(
     id = 1:SAMPLE_SIZE,
-    longitude = runif(SAMPLE_SIZE, bbox["xmin"], bbox["xmax"]),
-    latitude = runif(SAMPLE_SIZE, bbox["ymin"], bbox["ymax"])
+    longitude = runif(SAMPLE_SIZE, xmin, xmax),
+    latitude = runif(SAMPLE_SIZE, ymin, ymax)
 )
 
 # Convert to sf object
@@ -163,15 +212,20 @@ cat("\n")
 
 cat("Step 5: Characterizing clusters...\n\n")
 
-# Calculate cluster centers for key indices
-key_indices <- c("NDVI", "NDWI", "NDRE", "EVI", "BSI", "SAVI")
+# Calculate cluster centers for key bands (or indices if available)
+if (USE_INDICES) {
+    key_features <- c("NDVI", "NDWI", "NDRE", "EVI", "BSI", "SAVI")
+} else {
+    # Use raw bands for characterization
+    key_features <- c("B6", "B8", "B4", "B7", "B3", "B2")  # Red, NIR, Green, RedEdge, GreenI, Blue
+}
 
 cat(sprintf("%-10s", "Cluster"))
-for (idx in key_indices) {
-    cat(sprintf("%12s", paste0(idx, "_mean")))
+for (feat in key_features) {
+    cat(sprintf("%12s", paste0(feat, "_mean")))
 }
 cat("\n")
-cat(strrep("-", 10 + 12 * length(key_indices)), "\n")
+cat(strrep("-", 10 + 12 * length(key_features)), "\n")
 
 cluster_characteristics <- list()
 
@@ -182,8 +236,8 @@ for (cluster_id in 1:N_CLUSTERS) {
 
     characteristics <- list(cluster_id = cluster_id)
 
-    for (idx in key_indices) {
-        col_name <- paste0(idx, "_mean")
+    for (feat in key_features) {
+        col_name <- paste0(feat, "_mean")
         if (col_name %in% names(cluster_data)) {
             value <- mean(cluster_data[[col_name]], na.rm = TRUE)
             cat(sprintf("%12.3f", value))
@@ -204,64 +258,97 @@ cat("\n")
 
 cat("Step 6: Suggested land cover types for clusters...\n\n")
 
-suggest_land_cover <- function(ndvi_mean, ndwi_mean, ndre_mean, bsi_mean) {
-    suggestions <- c()
+if (USE_INDICES) {
+    suggest_land_cover <- function(ndvi_mean, ndwi_mean, ndre_mean, bsi_mean) {
+        suggestions <- c()
 
-    # Water
-    if (!is.na(ndwi_mean) && ndwi_mean > 0.3) {
-        suggestions <- c(suggestions, "water")
-    }
-
-    # Forest types (high NDVI)
-    if (!is.na(ndvi_mean) && ndvi_mean > 0.7) {
-        if (!is.na(ndre_mean) && ndre_mean > 0.3) {
-            suggestions <- c(suggestions, "natural_forest")
-        } else {
-            suggestions <- c(suggestions, "production_forest/agroforest")
+        # Water
+        if (!is.na(ndwi_mean) && ndwi_mean > 0.3) {
+            suggestions <- c(suggestions, "water")
         }
-    }
 
-    # Moderate vegetation
-    if (!is.na(ndvi_mean) && ndvi_mean > 0.4 && ndvi_mean <= 0.7) {
-        if (!is.na(ndwi_mean) && ndwi_mean > 0.0) {
-            suggestions <- c(suggestions, "paddy/grassland")
-        } else {
-            suggestions <- c(suggestions, "agroforest/grassland/ladang")
+        # Forest types (high NDVI)
+        if (!is.na(ndvi_mean) && ndvi_mean > 0.7) {
+            if (!is.na(ndre_mean) && ndre_mean > 0.3) {
+                suggestions <- c(suggestions, "natural_forest")
+            } else {
+                suggestions <- c(suggestions, "production_forest/agroforest")
+            }
         }
-    }
 
-    # Low vegetation
-    if (!is.na(ndvi_mean) && ndvi_mean > 0.15 && ndvi_mean <= 0.4) {
-        suggestions <- c(suggestions, "sparse_vegetation/ladang")
-    }
-
-    # Bare/built-up
-    if (!is.na(ndvi_mean) && ndvi_mean <= 0.15) {
-        if (!is.na(bsi_mean) && bsi_mean > 0.1) {
-            suggestions <- c(suggestions, "bareland")
-        } else {
-            suggestions <- c(suggestions, "settlement/bareland")
+        # Moderate vegetation
+        if (!is.na(ndvi_mean) && ndvi_mean > 0.4 && ndvi_mean <= 0.7) {
+            if (!is.na(ndwi_mean) && ndwi_mean > 0.0) {
+                suggestions <- c(suggestions, "paddy/grassland")
+            } else {
+                suggestions <- c(suggestions, "agroforest/grassland/ladang")
+            }
         }
+
+        # Low vegetation
+        if (!is.na(ndvi_mean) && ndvi_mean > 0.15 && ndvi_mean <= 0.4) {
+            suggestions <- c(suggestions, "sparse_vegetation/ladang")
+        }
+
+        # Bare/built-up
+        if (!is.na(ndvi_mean) && ndvi_mean <= 0.15) {
+            if (!is.na(bsi_mean) && bsi_mean > 0.1) {
+                suggestions <- c(suggestions, "bareland")
+            } else {
+                suggestions <- c(suggestions, "settlement/bareland")
+            }
+        }
+
+        if (length(suggestions) == 0) {
+            return("mixed/unclear")
+        }
+
+        return(paste(suggestions, collapse = " or "))
     }
 
-    if (length(suggestions) == 0) {
-        return("mixed/unclear")
+    for (cluster_id in 1:N_CLUSTERS) {
+        chars <- cluster_characteristics[[cluster_id]]
+
+        suggestion <- suggest_land_cover(
+            chars$NDVI_mean,
+            chars$NDWI_mean,
+            chars$NDRE_mean,
+            chars$BSI_mean
+        )
+
+        cat("  Cluster", cluster_id, "→", suggestion, "\n")
+    }
+} else {
+    # Using raw bands - simplified suggestion based on NIR/Red ratio
+    suggest_land_cover_raw <- function(b6_mean, b8_mean, b4_mean) {
+        # Calculate simple NDVI-like ratio: (NIR - Red) / (NIR + Red)
+        if (!is.na(b8_mean) && !is.na(b6_mean) && (b8_mean + b6_mean) > 0) {
+            ndvi_approx <- (b8_mean - b6_mean) / (b8_mean + b6_mean)
+
+            if (ndvi_approx > 0.6) {
+                return("forest/dense_vegetation")
+            } else if (ndvi_approx > 0.3) {
+                return("moderate_vegetation/cropland")
+            } else if (ndvi_approx > 0.1) {
+                return("sparse_vegetation/grassland")
+            } else {
+                return("bareland/settlement/water")
+            }
+        }
+        return("unclear")
     }
 
-    return(paste(suggestions, collapse = " or "))
-}
+    for (cluster_id in 1:N_CLUSTERS) {
+        chars <- cluster_characteristics[[cluster_id]]
 
-for (cluster_id in 1:N_CLUSTERS) {
-    chars <- cluster_characteristics[[cluster_id]]
+        suggestion <- suggest_land_cover_raw(
+            chars$B6_mean,
+            chars$B8_mean,
+            chars$B4_mean
+        )
 
-    suggestion <- suggest_land_cover(
-        chars$NDVI_mean,
-        chars$NDWI_mean,
-        chars$NDRE_mean,
-        chars$BSI_mean
-    )
-
-    cat("  Cluster", cluster_id, "→", suggestion, "\n")
+        cat("  Cluster", cluster_id, "→", suggestion, "\n")
+    }
 }
 cat("\n")
 
@@ -291,17 +378,28 @@ for (cluster_id in 1:N_CLUSTERS) {
         # Get coordinates
         coords <- sf::st_coordinates(cluster_points)
 
+        # Calculate suggested label
+        if (USE_INDICES) {
+            suggested <- suggest_land_cover(
+                mean(cluster_points$NDVI_mean, na.rm = TRUE),
+                mean(cluster_points$NDWI_mean, na.rm = TRUE),
+                mean(cluster_points$NDRE_mean, na.rm = TRUE),
+                mean(cluster_points$BSI_mean, na.rm = TRUE)
+            )
+        } else {
+            suggested <- suggest_land_cover_raw(
+                mean(cluster_points$B6_mean, na.rm = TRUE),
+                mean(cluster_points$B8_mean, na.rm = TRUE),
+                mean(cluster_points$B4_mean, na.rm = TRUE)
+            )
+        }
+
         # Create data frame
         points_df <- data.frame(
             cluster = cluster_id,
             longitude = coords[, "X"],
             latitude = coords[, "Y"],
-            suggested_label = suggest_land_cover(
-                mean(cluster_points$NDVI_mean, na.rm = TRUE),
-                mean(cluster_points$NDWI_mean, na.rm = TRUE),
-                mean(cluster_points$NDRE_mean, na.rm = TRUE),
-                mean(cluster_points$BSI_mean, na.rm = TRUE)
-            ),
+            suggested_label = suggested,
             label = "",  # Empty for user to fill in
             start_date = "",
             end_date = ""
