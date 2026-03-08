@@ -90,6 +90,23 @@ for (f in band_files) {
 
 cat("  Linked to", CUBE_DIR, "\n\n")
 
+# Fix CRS: some files have different WKT axis labels, causing sits to
+# see multiple CRS. Standardize all files to the same CRS (from first file).
+cat("  Standardizing CRS across all files...\n")
+library(terra)
+ref_file <- list.files(CUBE_DIR, pattern = "\\.tif$", full.names = TRUE)[1]
+ref_crs <- crs(rast(ref_file))
+
+for (f in list.files(CUBE_DIR, pattern = "\\.tif$", full.names = TRUE)) {
+    r <- rast(f)
+    if (crs(r) != ref_crs) {
+        crs(r) <- ref_crs
+        writeRaster(r, f, overwrite = TRUE, gdal = c("COMPRESS=LZW"))
+        cat("    Fixed CRS:", basename(f), "\n")
+    }
+}
+cat("  CRS standardized.\n\n")
+
 }
 
 # ==============================================================================
