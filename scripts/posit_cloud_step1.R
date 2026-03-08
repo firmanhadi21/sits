@@ -100,8 +100,10 @@ ref_crs <- crs(rast(ref_file))
 for (f in list.files(CUBE_DIR, pattern = "\\.tif$", full.names = TRUE)) {
     r <- rast(f)
     if (crs(r) != ref_crs) {
+        tmp_file <- paste0(f, ".tmp.tif")
         crs(r) <- ref_crs
-        writeRaster(r, f, overwrite = TRUE, gdal = c("COMPRESS=LZW"))
+        writeRaster(r, tmp_file, gdal = c("COMPRESS=LZW"))
+        file.rename(tmp_file, f)
         cat("    Fixed CRS:", basename(f), "\n")
     }
 }
