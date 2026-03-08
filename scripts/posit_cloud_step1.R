@@ -97,7 +97,8 @@ library(terra)
 ref_file <- list.files(CUBE_DIR, pattern = "\\.tif$", full.names = TRUE)[1]
 ref_crs <- crs(rast(ref_file))
 
-for (f in list.files(CUBE_DIR, pattern = "\\.tif$", full.names = TRUE)) {
+cube_files <- list.files(CUBE_DIR, pattern = "_TILE_B\\d\\.tif$", full.names = TRUE)
+for (f in cube_files) {
     r <- rast(f)
     if (crs(r) != ref_crs) {
         tmp_file <- paste0(f, ".tmp.tif")
