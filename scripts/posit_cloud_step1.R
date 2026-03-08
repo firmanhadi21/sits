@@ -5,7 +5,8 @@
 # Prerequisites:
 #   1. Upload data/planetscope_mosaicked_masked/ (8 bands, ~6.3 GB) to Posit Cloud
 #   2. Upload data/samples_planet_step1_landcover.gpkg
-#   3. Install sits: install.packages("sits", dependencies = TRUE)
+#   3. Upload config_source_planet.yml (from inst/extdata/sources/)
+#   4. Install sits: install.packages("sits", dependencies = TRUE)
 #
 # Upload structure on Posit Cloud:
 #   /cloud/project/data/planetscope_mosaicked_masked/
@@ -22,6 +23,25 @@ suppressPackageStartupMessages({
 cat("========================================\n")
 cat("PlanetScope Step 1 - Posit Cloud\n")
 cat("========================================\n\n")
+
+# ==============================================================================
+# Register custom PLANET source (not in standard CRAN sits)
+# Upload config_source_planet.yml to your Posit Cloud project root
+# ==============================================================================
+
+PLANET_CONFIG <- "config_source_planet.yml"
+if (!file.exists(PLANET_CONFIG)) {
+    # Also check in inst/extdata/sources/
+    PLANET_CONFIG <- "inst/extdata/sources/config_source_planet.yml"
+}
+if (file.exists(PLANET_CONFIG)) {
+    sits_config(config_user_file = PLANET_CONFIG)
+    cat("Registered PLANET source from:", PLANET_CONFIG, "\n\n")
+} else {
+    stop("PLANET config not found!\n",
+         "Upload config_source_planet.yml to your Posit Cloud project.\n",
+         "Get it from: inst/extdata/sources/config_source_planet.yml")
+}
 
 # ==============================================================================
 # Configuration
